@@ -2,8 +2,10 @@ import { Router } from "express";
 import { query, transaction } from "../db.js";
 import { nextNumber } from "../utils/sequence.js";
 import { makeInvoicePdf, makePdf, makeQuotationPdf, makeReceiptPdf, makeExpenseVoucherPdf, makePaymentVoucherPdf } from "../utils/pdf.js";
+import phase4Router from "./phase4.js";
 
 const router = Router();
+router.use(phase4Router);
 const roleAllowed = (req, roles) => roles.includes(req.user?.role);
 const requireRole = (req, res, roles) => {
   if (!roleAllowed(req, roles)) { res.status(403).json({ error: "You do not have permission for this action" }); return false; }
@@ -61,10 +63,29 @@ router.get("/dashboard", async (_, res) => {
 });
 router.get("/customers", async (_,res) => res.json((await query("SELECT * FROM customers ORDER BY created_at DESC")).rows));
 router.post("/customers", async (req,res) => {
+  if(!requireRole(req,res,["ADMIN","MANAGER","CLERK"])) return;
   const {name,contact_person="",phone="",email="",address="",tax_number="",notes=""}=req.body;
   if(!name?.trim()) return res.status(400).json({error:"Customer name is required"});
-  const result=await transaction(async client=>{const number=await nextNumber(client,"CUS"); const r=await client.query(`INSERT INTO customers(customer_code,name,contact_person,phone,email,address,tax_number,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,[number,name.trim(),contact_person,phone,email,address,tax_number,notes,req.user.id]); await audit(client,req.user.id,"CREATE","CUSTOMER",r.rows[0].id,{number}); return r;});
-  res.status(201).json(result.rows[0]);
+  try {
+    const result=await transaction(async client=>{const number=await nextNumber(client,"CUS"); const r=await client.query(`INSERT INTO customers(customer_code,name,contact_person,phone,email,address,tax_number,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,[number,name.trim(),contact_person,phone,email,address,tax_number,notes,req.user.id]); await audit(client,req.user.id,"CREATE","CUSTOMER",r.rows[0].id,{number}); return r;});
+    res.status(201).json(result.rows[0]);
+  } catch(e) { console.error(e); res.status(400).json({error:e.message||"Unable to create customer"}); }
+});
+router.patch("/customers/:id", async (req,res) => {
+  if(!requireRole(req,res,["ADMIN","MANAGER","CLERK"])) return;
+  const {name,contact_person="",phone="",email="",address="",tax_number="",notes=""}=req.body;
+  if(!name?.trim()) return res.status(400).json({error:"Customer name is required"});
+  try {
+    const result=await transaction(async client=>{const existing=(await client.query("SELECT * FROM customers WHERE id=$1 FOR UPDATE",[req.params.id])).rows[0]; if(!existing) throw new Error("Customer not found"); const r=await client.query(`UPDATE customers SET name=$1,contact_person=$2,phone=$3,email=$4,address=$5,tax_number=$6,notes=$7 WHERE id=$8 RETURNING *`,[name.trim(),contact_person,phone,email,address,tax_number,notes,existing.id]); await audit(client,req.user.id,"EDIT","CUSTOMER",existing.id,{number:existing.customer_code}); return r.rows[0];});
+    res.json(result);
+  } catch(e) { console.error(e); res.status(400).json({error:e.message||"Unable to update customer"}); }
+});
+router.delete("/customers/:id", async (req,res) => {
+  if(!requireRole(req,res,["ADMIN"])) return;
+  try {
+    const result=await transaction(async client=>{const existing=(await client.query("SELECT * FROM customers WHERE id=$1 FOR UPDATE",[req.params.id])).rows[0]; if(!existing) throw new Error("Customer not found"); const q=Number((await client.query("SELECT COUNT(*)::int count FROM quotations WHERE customer_id=$1",[existing.id])).rows[0].count); const i=Number((await client.query("SELECT COUNT(*)::int count FROM invoices WHERE customer_id=$1",[existing.id])).rows[0].count); const cn=Number((await client.query("SELECT COUNT(*)::int count FROM credit_notes WHERE customer_id=$1",[existing.id])).rows[0].count); if(q>0||i>0||cn>0) throw new Error("Customer cannot be deleted because it has quotations, invoices, or credit notes. Edit the customer instead."); await audit(client,req.user.id,"DELETE","CUSTOMER",existing.id,{number:existing.customer_code}); await client.query("DELETE FROM customers WHERE id=$1",[existing.id]); return existing;});
+    res.json({message:"Customer deleted successfully",customer:result});
+  } catch(e) { console.error(e); res.status(400).json({error:e.message||"Unable to delete customer"}); }
 });
 
 router.get("/quotations", async (_,res)=>res.json((await query(`SELECT q.*,c.name customer_name FROM quotations q JOIN customers c ON c.id=q.customer_id ORDER BY q.created_at DESC`)).rows));

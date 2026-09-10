@@ -1,6 +1,6 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import { query, transaction } from "../db.js";
+import { query } from "../db.js";
 import { authenticate, authorize, signUser } from "../middleware/auth.js";
 
 const router = Router();
@@ -55,6 +55,7 @@ router.patch("/users/:id", authenticate, authorize("ADMIN"), async (req,res) => 
   const { name,email,role,active } = req.body;
   if (role !== undefined && !ROLES.includes(role)) return res.status(400).json({ error:"Invalid role" });
   if (req.params.id === req.user.id && active === false) return res.status(400).json({ error:"You cannot deactivate your own account" });
+  if (req.params.id === req.user.id && role !== undefined && role !== "ADMIN") return res.status(400).json({ error:"You cannot remove Administrator access from your own account" });
   const result = await query(`UPDATE users SET name=COALESCE($1,name), email=COALESCE($2,email), role=COALESCE($3,role), active=COALESCE($4,active), updated_at=NOW() WHERE id=$5 RETURNING id,name,email,role,active,created_at,updated_at`,[name,email?String(email).trim().toLowerCase():null,role,active,req.params.id]);
   if (!result.rows[0]) return res.status(404).json({ error:"User not found" });
   res.json(result.rows[0]);
@@ -67,6 +68,31 @@ router.post("/users/:id/reset-password", authenticate, authorize("ADMIN"), async
   const result = await query("UPDATE users SET password_hash=$1,updated_at=NOW() WHERE id=$2 RETURNING id",[hash,req.params.id]);
   if (!result.rows[0]) return res.status(404).json({ error:"User not found" });
   res.json({ ok:true });
+});
+
+router.delete("/users/:id", authenticate, authorize("ADMIN"), async (req,res) => {
+  const id = req.params.id;
+  if (id === req.user.id) return res.status(400).json({ error:"You cannot delete your own account" });
+
+  try {
+    const target = await query("SELECT id,role FROM users WHERE id=$1", [id]);
+    if (!target.rows[0]) return res.status(404).json({ error:"User not found" });
+
+    if (target.rows[0].role === "ADMIN") {
+      const admins = await query("SELECT COUNT(*)::int AS count FROM users WHERE role='ADMIN' AND active=TRUE");
+      if (Number(admins.rows[0].count) <= 1) {
+        return res.status(400).json({ error:"The last active Administrator cannot be deleted. Create another Administrator or deactivate the account instead." });
+      }
+    }
+
+    await query("DELETE FROM users WHERE id=$1", [id]);
+    res.json({ ok:true });
+  } catch (e) {
+    if (e.code === "23503") {
+      return res.status(409).json({ error:"This user has associated records and cannot be deleted. Deactivate the account instead." });
+    }
+    throw e;
+  }
 });
 
 export default router;

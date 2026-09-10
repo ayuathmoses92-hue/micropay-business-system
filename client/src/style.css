@@ -212,3 +212,138 @@ th{background:#244F6A;color:white}
   .reconciliation-create-panel .recon-notes,
   .reconciliation-create-panel .reconciliation-form-actions { grid-column:auto !important; }
 }
+
+
+/* Supplier bill payment form: prevent field overlap on desktop and smaller screens */
+.bill-payment-form{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px 16px!important;
+  align-items:start;
+}
+.bill-payment-form label{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  font-size:12px;
+  font-weight:600;
+  color:#52636d;
+}
+.bill-payment-form input,
+.bill-payment-form select,
+.bill-payment-form textarea{
+  width:100%;
+  min-width:0!important;
+  box-sizing:border-box;
+}
+.bill-payment-form textarea{
+  min-height:58px;
+  resize:vertical;
+}
+.bill-payment-form button{
+  margin:0;
+  align-self:end;
+}
+@media(max-width:950px){
+  .bill-payment-form{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:650px){
+  .bill-payment-form{grid-template-columns:1fr;}
+}
+
+/* Production shell: header stays fixed; sidebar and content scroll independently. */
+html, body, #root {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+}
+body { overflow: hidden; }
+.app-shell {
+  width: 100%;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+.app-header {
+  height: 72px;
+  flex: 0 0 72px;
+  position: relative;
+}
+.app-body {
+  display: flex;
+  width: 100%;
+  height: calc(100vh - 72px);
+  min-height: 0;
+  overflow: hidden;
+}
+.sidebar {
+  width: 225px;
+  height: 100%;
+  min-height: 0;
+  flex: 0 0 225px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scrollbar-width: auto;
+  scrollbar-color: #9aaab3 #eef2f4;
+}
+.sidebar::-webkit-scrollbar,
+.content-area::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.sidebar::-webkit-scrollbar-track,
+.content-area::-webkit-scrollbar-track {
+  background: #eef2f4;
+}
+.sidebar::-webkit-scrollbar-thumb,
+.content-area::-webkit-scrollbar-thumb {
+  background: #9aaab3;
+  border-radius: 8px;
+  border: 2px solid #eef2f4;
+}
+.sidebar::-webkit-scrollbar-thumb:hover,
+.content-area::-webkit-scrollbar-thumb:hover {
+  background: #71838e;
+}
+.content-area {
+  flex: 1 1 auto;
+  width: 0;
+  min-width: 0;
+  max-width: none;
+  height: 100%;
+  margin: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: auto;
+  scrollbar-color: #9aaab3 #eef2f4;
+}
+@media(max-width:850px){
+  .sidebar { width:185px; flex-basis:185px; }
+}
+@media(max-width:650px){
+  body { overflow: hidden; }
+  .app-header { height:64px; flex-basis:64px; }
+  .app-body {
+    height: calc(100vh - 64px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar {
+    width: 100%;
+    flex: 0 0 auto;
+    height: auto;
+    max-height: 48px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    display: flex;
+  }
+  .content-area {
+    width: 100%;
+    height: auto;
+    flex: 1 1 auto;
+    overflow-y: auto;
+  }
+}
