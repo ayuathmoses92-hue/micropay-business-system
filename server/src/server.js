@@ -14,7 +14,13 @@ app.disable("x-powered-by");
 app.set("trust proxy", Number(process.env.TRUST_PROXY || 1));
 
 app.use(securityHeaders);
-app.use(cors({ origin: corsOrigin, credentials: false }));
+app.use(cors({
+  origin: corsOrigin,
+  credentials: false,
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204
+}));
 
 app.use(express.json({
   limit: process.env.JSON_BODY_LIMIT || "1mb"
