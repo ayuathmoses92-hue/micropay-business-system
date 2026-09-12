@@ -9,6 +9,8 @@ function getAllowedOrigins() {
 
 export function corsOrigin(origin, callback) {
   const allowed = getAllowedOrigins();
+  console.log("CORS DEBUG origin:", origin);
+  console.log("CORS DEBUG allowed:", allowed);
   // Server-to-server / health checks may have no Origin header.
   if (!origin) return callback(null, true);
   if (allowed.includes("*") || allowed.includes(origin)) return callback(null, true);
