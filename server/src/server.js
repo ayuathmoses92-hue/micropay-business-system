@@ -14,18 +14,9 @@ app.disable("x-powered-by");
 app.set("trust proxy", Number(process.env.TRUST_PROXY || 1));
 
 app.use(securityHeaders);
-const TEST_FRONTEND_ORIGIN = "https://ayuathmos92-hue.github.io";
+const TEST_FRONTEND_ORIGIN = "https://ayuathmoses92-hue.github.io";
 
 app.use(cors({
-  origin: TEST_FRONTEND_ORIGIN,
-  credentials: false,
-  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  optionsSuccessStatus: 204
-}));
-
-// Explicitly answer browser CORS preflight requests before authentication.
-app.options("*", cors({
   origin: TEST_FRONTEND_ORIGIN,
   credentials: false,
   methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
