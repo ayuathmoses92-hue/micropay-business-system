@@ -415,3 +415,78 @@ body { overflow: hidden; }
     grid-column: auto;
   }
 }
+
+
+/* Profitability date filter: explicit isolated layout to prevent global form styles from overlapping fields. */
+.profitability-filter-panel .profitability-date-grid {
+  display: grid !important;
+  grid-template-columns: minmax(220px, 280px) minmax(220px, 280px) auto !important;
+  column-gap: 24px !important;
+  row-gap: 16px !important;
+  align-items: end !important;
+  width: 100% !important;
+}
+
+.profitability-filter-panel .profitability-date-field {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+.profitability-filter-panel .profitability-date-field label {
+  display: block !important;
+  position: static !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+  white-space: nowrap !important;
+}
+
+.profitability-filter-panel .profitability-date-field input[type="date"] {
+  display: block !important;
+  position: static !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: 40px !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 8px 10px !important;
+}
+
+.profitability-filter-panel .profitability-date-action {
+  display: flex !important;
+  align-items: flex-end !important;
+  min-height: 68px !important;
+}
+
+.profitability-filter-panel .profitability-date-action button {
+  margin: 0 !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 850px) {
+  .profitability-filter-panel .profitability-date-grid {
+    grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) !important;
+  }
+
+  .profitability-filter-panel .profitability-date-action {
+    grid-column: 1 / -1 !important;
+    min-height: auto !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .profitability-filter-panel .profitability-date-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .profitability-filter-panel .profitability-date-action {
+    grid-column: auto !important;
+  }
+}
