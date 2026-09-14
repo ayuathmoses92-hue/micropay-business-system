@@ -474,6 +474,36 @@ function Bills({user}){
   </>;
 }
 
+function CustomerStatements({user}){
+  const [customers,setCustomers]=useState([]),[customerId,setCustomerId]=useState(""),[statement,setStatement]=useState(null),[loading,setLoading]=useState(false),[error,setError]=useState("");
+  useEffect(()=>{api("/customers").then(setCustomers).catch(e=>setError(e.message))},[]);
+  const load=async()=>{if(!customerId){setStatement(null);return}setLoading(true);setError("");try{setStatement(await api(`/phase4/customer-statements/${customerId}`))}catch(e){setError(e.message)}finally{setLoading(false)}};
+  const money=(v)=>Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  return <><div className="toolbar"><div><h1>Customer Statements</h1><p className="muted">Review customer invoices, receipts, credit notes and running balances.</p></div></div>
+    <div className="panel"><div className="form-grid"><div className="form-field"><label>Customer</label><select value={customerId} onChange={e=>setCustomerId(e.target.value)}><option value="">Select customer</option>{customers.map(c=><option key={c.id} value={c.id}>{c.customer_code} — {c.name}</option>)}</select></div><div className="form-actions"><button type="button" onClick={load} disabled={!customerId||loading}>{loading?"Loading...":"View Statement"}</button></div></div></div>
+    {error&&<div className="panel"><p className="error-text">{error}</p></div>}
+    {statement&&<><div className="cards"><div className="card"><small>CUSTOMER</small><strong>{statement.customer.name}</strong><span>{statement.customer.customer_code||""}</span></div>{Object.entries(statement.balances||{}).map(([c,b])=><div className="card" key={c}><small>{c} BALANCE</small><strong>{money(b)}</strong><span>Closing balance</span></div>)}</div>
+      <div className="panel"><div className="section-title"><h2>Statement Transactions</h2><span>{statement.rows?.length||0} transactions</span></div><div className="table-wrap"><table><thead><tr><th>Date</th><th>Reference</th><th>Type</th><th>Currency</th><th>Amount</th><th>Credit</th><th>Balance</th><th>Base USD</th></tr></thead><tbody>{statement.rows?.length?statement.rows.map((r,i)=><tr key={`${r.reference}-${i}`}><td>{r.date}</td><td>{r.reference}</td><td>{r.type}</td><td>{r.currency_code}</td><td>{money(r.amount)}</td><td>{money(r.credit)}</td><td>{money(r.currency_balance)}</td><td>{money(r.base_amount)}</td></tr>):<tr><td colSpan="8">No transactions found for this customer.</td></tr>}</tbody></table></div></div></>}
+  </>;
+}
+
+function FinancialPeriods({user}){
+  const [rows,setRows]=useState([]),[loading,setLoading]=useState(true),[error,setError]=useState("");
+  const load=()=>{setLoading(true);setError("");api("/phase4/periods").then(setRows).catch(e=>setError(e.message)).finally(()=>setLoading(false))};
+  useEffect(()=>{load()},[]);
+  const action=async(id,type)=>{if(!window.confirm(`${type==='close'?"Close":"Reopen"} this financial period?`))return;try{await api(`/phase4/periods/${id}/${type}`,{method:"POST"});load()}catch(e){alert(e.message)}};
+  return <><div className="toolbar"><div><h1>Financial Periods</h1><p className="muted">Monitor and control accounting periods.</p></div><button onClick={load}>Refresh</button></div>{error&&<div className="panel"><p className="error-text">{error}</p></div>}{loading?<p>Loading financial periods...</p>:<div className="panel"><div className="table-wrap"><table><thead><tr><th>Year</th><th>Month</th><th>Status</th><th>Closed By</th><th>Closed At</th><th>Actions</th></tr></thead><tbody>{rows.length?rows.map(r=><tr key={r.id}><td>{r.period_year}</td><td>{String(r.period_month).padStart(2,"0")}</td><td><span className={`status status-${String(r.status||"").toLowerCase()}`}>{r.status}</span></td><td>{r.closed_by_name||"—"}</td><td>{r.closed_at?new Date(r.closed_at).toLocaleString():"—"}</td><td>{r.status==='OPEN'?<button onClick={()=>action(r.id,'close')}>Close Period</button>:user?.role==='ADMIN'?<button onClick={()=>action(r.id,'reopen')}>Reopen</button>:<span className="muted">Admin only</span>}</td></tr>):<tr><td colSpan="6">No financial periods found.</td></tr>}</tbody></table></div></div>}</>;
+}
+
+function Profitability({user}){
+  const today=new Date().toISOString().slice(0,10);const yearStart=`${new Date().getFullYear()}-01-01`;
+  const [from,setFrom]=useState(yearStart),[to,setTo]=useState(today),[report,setReport]=useState(null),[loading,setLoading]=useState(false),[error,setError]=useState("");
+  const load=async()=>{setLoading(true);setError("");try{setReport(await api(`/phase4/profitability?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`))}catch(e){setError(e.message)}finally{setLoading(false)}};
+  useEffect(()=>{load()},[]);
+  const money=v=>Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  return <><div className="toolbar"><div><h1>Profitability</h1><p className="muted">Management profitability view in the base currency (USD).</p></div></div><div className="panel"><div className="form-grid"><div className="form-field"><label>From</label><input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></div><div className="form-field"><label>To</label><input type="date" value={to} onChange={e=>setTo(e.target.value)}/></div><div className="form-actions"><button onClick={load} disabled={loading}>{loading?"Loading...":"Run Report"}</button></div></div></div>{error&&<div className="panel"><p className="error-text">{error}</p></div>}{report&&<><div className="cards"><div className="card"><small>INVOICED</small><strong>${money(report.summary.invoiced)}</strong><span>Non-cancelled invoices</span></div><div className="card"><small>COLLECTED</small><strong>${money(report.summary.collected)}</strong><span>Issued receipts/payments</span></div><div className="card"><small>EXPENSES</small><strong>${money(report.summary.expenses)}</strong><span>Non-cancelled expenses</span></div><div className="card"><small>OPERATING RESULT</small><strong>${money(report.summary.operating_result)}</strong><span>Collections less expenses</span></div><div className="card"><small>RECEIVABLES</small><strong>${money(report.summary.receivables_cash_basis)}</strong><span>Invoiced less collected</span></div><div className="card"><small>PAYABLES</small><strong>${money(report.summary.payables)}</strong><span>Supplier bills</span></div></div><div className="panel"><div className="section-title"><h2>Currency Activity</h2><span>{report.from} to {report.to}</span></div><div className="table-wrap"><table><thead><tr><th>Currency</th><th>Base USD Activity</th></tr></thead><tbody>{report.currency_activity?.length?report.currency_activity.map(r=><tr key={r.currency_code}><td>{r.currency_code}</td><td>${money(r.base_amount)}</td></tr>):<tr><td colSpan="2">No posted account activity for this period.</td></tr>}</tbody></table></div></div></>}</>;
+}
+
 function Users(){
   const [rows,setRows]=useState([]);
   const [open,setOpen]=useState(false);
