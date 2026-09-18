@@ -23,7 +23,29 @@ router.post("/phase4/exchange-rates",async(req,res)=>{if(!requireRole(req,res,["
 router.get("/phase4/exchange-rates",async(req,res)=>{if(!requireRole(req,res,["ADMIN","MANAGER","FINANCE"]))return;res.json((await query(`SELECT e.*,f.name from_name,t.name to_name FROM exchange_rates e JOIN currencies f ON f.code=e.from_currency JOIN currencies t ON t.code=e.to_currency ORDER BY e.rate_date DESC,e.from_currency,e.to_currency LIMIT 500`)).rows)});
 
 // Currency-aware financial accounts. Existing accounts default to USD after migration.
-router.post("/financial-accounts",async(req,res)=>{if(!requireRole(req,res,["ADMIN","FINANCE"]))return;const {account_code,account_name,account_type,institution_name="",account_reference="",opening_balance=0,opening_balance_date=null,active=true,notes="",currency_code="USD"}=req.body;try{const result=await transaction(async client=>{const c=String(currency_code||"USD").toUpperCase();const cur=(await client.query("SELECT * FROM currencies WHERE code=$1 AND active=TRUE",[c])).rows[0];if(!cur)throw new Error("Currency not found or inactive");const r=(await client.query(`INSERT INTO financial_accounts(account_code,account_name,account_type,institution_name,account_reference,opening_balance,opening_balance_date,active,notes,created_by,currency_code) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,[account_code,account_name,account_type,institution_name,account_reference,opening_balance,opening_balance_date,active,notes,req.user.id,c])).rows[0];await audit(client,req.user.id,"CREATE","FINANCIAL_ACCOUNT",r.id,{currency_code:c});return r});res.status(201).json(result)}catch(e){res.status(400).json({error:e.message})}});
+router.post("/financial-accounts",async(req,res)=>{
+  if(!requireRole(req,res,["ADMIN","FINANCE"]))return;
+  const {account_name,account_type,institution_name="",account_reference="",opening_balance=0,opening_balance_date=null,active=true,notes="",currency_code="USD"}=req.body;
+  const name=String(account_name||"").trim();
+  const type=String(account_type||"").trim().toUpperCase();
+  const c=String(currency_code||"USD").trim().toUpperCase();
+  const opening=Number(opening_balance||0);
+  if(!name)return res.status(400).json({error:"Account name is required"});
+  if(!["CASH","BANK","MOBILE_MONEY"].includes(type))return res.status(400).json({error:"Valid account type is required"});
+  if(!["USD","SSP"].includes(c))return res.status(400).json({error:"Valid account currency is required"});
+  if(!Number.isFinite(opening)||opening<0)return res.status(400).json({error:"Opening balance must be zero or greater"});
+  try{const result=await transaction(async client=>{
+    await client.query("SELECT pg_advisory_xact_lock($1)",[72631401]);
+    const seq=(await client.query(`SELECT COALESCE(MAX(CASE WHEN account_code ~ '^ACC-[0-9]+$' THEN substring(account_code FROM 5)::integer ELSE 0 END),0)+1 AS next_number FROM financial_accounts`)).rows[0]?.next_number;
+    const n=Number(seq||1);
+    if(!Number.isInteger(n)||n<1)throw new Error("Unable to generate financial account code");
+    const accountCode=`ACC-${String(n).padStart(4,"0")}`;
+    const cur=(await client.query("SELECT * FROM currencies WHERE code=$1 AND active=TRUE",[c])).rows[0];
+    if(!cur)throw new Error("Currency not found or inactive");
+    const r=(await client.query(`INSERT INTO financial_accounts(account_code,account_name,account_type,institution_name,account_reference,opening_balance,opening_balance_date,active,notes,created_by,currency_code) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,[accountCode,name,type,institution_name,account_reference,opening,opening_balance_date,active,notes,req.user.id,c])).rows[0];
+    await audit(client,req.user.id,"CREATE","FINANCIAL_ACCOUNT",r.id,{account_code:accountCode,currency_code:c});
+    return r;
+  });res.status(201).json(result)}catch(e){console.error(e);res.status(400).json({error:e.message})}});
 router.patch("/financial-accounts/:id",async(req,res)=>{if(!requireRole(req,res,["ADMIN","FINANCE"]))return;const {account_name,account_type,institution_name="",account_reference="",active=true,notes="",currency_code}=req.body;try{const r=await transaction(async client=>{const old=(await client.query("SELECT * FROM financial_accounts WHERE id=$1 FOR UPDATE",[req.params.id])).rows[0];if(!old)throw new Error("Financial account not found");const c=String(currency_code||old.currency_code||"USD").toUpperCase();if(c!==(old.currency_code||"USD")){const tx=(await client.query("SELECT 1 FROM account_transactions WHERE account_id=$1 LIMIT 1",[old.id])).rowCount;if(tx)throw new Error("Currency cannot be changed after transactions exist on the account");}const r=(await client.query(`UPDATE financial_accounts SET account_name=$1,account_type=$2,institution_name=$3,account_reference=$4,active=$5,notes=$6,currency_code=$7,updated_at=NOW() WHERE id=$8 RETURNING *`,[account_name,account_type,institution_name,account_reference,active,notes,c,old.id])).rows[0];await audit(client,req.user.id,"EDIT","FINANCIAL_ACCOUNT",old.id,{currency_code:c});return r});res.json(r)}catch(e){res.status(400).json({error:e.message})}});
 
 // Currency-aware quotation creation/edit/conversion.
