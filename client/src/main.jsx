@@ -295,7 +295,7 @@ function CashBankAccounts({user}){
   };
   useEffect(()=>{load()},[]);
   const loadStatement=async id=>{try{setSelected(id);setStatement(await api(`/financial-accounts/${id}/statement`))}catch(e){alert(e.message)}};
-  const reset=()=>setF({account_name:"",account_type:"CASH",institution_name:"",account_reference:"",opening_balance:"",opening_balance_date:"",active:true,notes:""});
+  const reset=()=>setF({account_name:"",account_type:"CASH",institution_name:"",account_reference:"",opening_balance:"",opening_balance_date:"",active:true,notes:"",currency_code:"USD"});
   const save=async e=>{e.preventDefault();try{await api(editing?`/financial-accounts/${editing.id}`:"/financial-accounts",{method:editing?"PATCH":"POST",body:JSON.stringify({...f,opening_balance:Number(f.opening_balance||0)})});setOpen(false);setEditing(null);reset();load()}catch(e){alert(e.message)}};
   const edit=a=>{setEditing(a);setF({account_name:a.account_name||"",account_type:a.account_type||"CASH",institution_name:a.institution_name||"",account_reference:a.account_reference||"",opening_balance:a.opening_balance||0,opening_balance_date:a.opening_balance_date||"",active:a.active!==false,notes:a.notes||"",currency_code:a.currency_code||"USD"});setOpen(true)};
   const transfer=async e=>{e.preventDefault();try{await api("/financial-transfers",{method:"POST",body:JSON.stringify({...tf,amount:Number(tf.amount)})});setTransferOpen(false);setTf({...tf,amount:"",reference:"",description:""});load();if(selected)loadStatement(selected)}catch(e){alert(e.message)}};

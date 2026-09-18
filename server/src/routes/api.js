@@ -604,17 +604,31 @@ router.post("/financial-accounts", async (req,res)=>{
   const opening=Number(req.body.opening_balance||0);
   const date=req.body.opening_balance_date||null;
   const notes=String(req.body.notes||"").trim();
+  const currency=String(req.body.currency_code||"USD").trim().toUpperCase();
   if(!name)return res.status(400).json({error:"Account name is required"});
   if(!["CASH","BANK","MOBILE_MONEY"].includes(type))return res.status(400).json({error:"Valid account type is required"});
+  if(!["USD","SSP"].includes(currency))return res.status(400).json({error:"Valid account currency is required"});
   if(!Number.isFinite(opening)||opening<0)return res.status(400).json({error:"Opening balance must be zero or greater"});
   try{
     const result=await transaction(async client=>{
-      const code=(await client.query(`SELECT 'ACC-'||LPAD((COALESCE(MAX(NULLIF(regexp_replace(account_code,'\\D','','g'),'' )::integer),0)+1)::text,4,'0') AS code FROM financial_accounts`)).rows[0].code;
+      // Serialize account-code generation so concurrent account creation cannot produce duplicates.
+      await client.query("SELECT pg_advisory_xact_lock($1)",[72631401]);
+      const nextResult=await client.query(`
+        SELECT COALESCE(MAX(
+          CASE WHEN account_code ~ '^ACC-[0-9]+$'
+               THEN substring(account_code FROM 5)::integer
+               ELSE 0 END
+        ),0)+1 AS next_number
+        FROM financial_accounts
+      `);
+      const nextNumber=Number(nextResult.rows[0]?.next_number||1);
+      if(!Number.isInteger(nextNumber)||nextNumber<1)throw new Error("Unable to generate financial account code");
+      const code=`ACC-${String(nextNumber).padStart(4,"0")}`;
       const r=await client.query(`INSERT INTO financial_accounts
-        (account_code,account_name,account_type,institution_name,account_reference,opening_balance,opening_balance_date,notes,created_by)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
-        [code,name,type,institution||null,reference||null,opening,date,notes||null,req.user.id]);
-      await audit(client,req.user.id,"CREATE","FINANCIAL_ACCOUNT",r.rows[0].id,{account_code:code,account_name:name,account_type:type,opening_balance:opening});
+        (account_code,account_name,account_type,institution_name,account_reference,opening_balance,opening_balance_date,notes,created_by,currency_code)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+        [code,name,type,institution||null,reference||null,opening,date,notes||null,req.user.id,currency]);
+      await audit(client,req.user.id,"CREATE","FINANCIAL_ACCOUNT",r.rows[0].id,{account_code:code,account_name:name,account_type:type,currency_code:currency,opening_balance:opening});
       return r.rows[0];
     });
     res.status(201).json(result);
@@ -631,16 +645,17 @@ router.patch("/financial-accounts/:id", async (req,res)=>{
   const date=req.body.opening_balance_date||null;
   const active=req.body.active!==false;
   const notes=String(req.body.notes||"").trim();
-  if(!name||!["CASH","BANK","MOBILE_MONEY"].includes(type)||!Number.isFinite(opening)||opening<0)
+  const currency=String(req.body.currency_code||"USD").trim().toUpperCase();
+  if(!name||!["CASH","BANK","MOBILE_MONEY"].includes(type)||!["USD","SSP"].includes(currency)||!Number.isFinite(opening)||opening<0)
     return res.status(400).json({error:"Valid account details are required"});
   try{
     const result=await transaction(async client=>{
       const existing=(await client.query("SELECT * FROM financial_accounts WHERE id=$1 FOR UPDATE",[req.params.id])).rows[0];
       if(!existing)throw new Error("Financial account not found");
       const r=await client.query(`UPDATE financial_accounts SET account_name=$1,account_type=$2,institution_name=$3,
-        account_reference=$4,opening_balance=$5,opening_balance_date=$6,active=$7,notes=$8,updated_at=NOW()
-        WHERE id=$9 RETURNING *`,
-        [name,type,institution||null,reference||null,opening,date,active,notes||null,existing.id]);
+        account_reference=$4,opening_balance=$5,opening_balance_date=$6,active=$7,notes=$8,currency_code=$9,updated_at=NOW()
+        WHERE id=$10 RETURNING *`,
+        [name,type,institution||null,reference||null,opening,date,active,notes||null,currency,existing.id]);
       await audit(client,req.user.id,"EDIT","FINANCIAL_ACCOUNT",existing.id,{account_name:name,account_type:type,active});
       return r.rows[0];
     });
