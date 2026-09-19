@@ -608,9 +608,21 @@ function ProcurementItemsEditor({items,setItems,priceLabel="Estimated Unit Price
  const add=()=>setItems([...items,{description:"",quantity:1,unit:"EA",unit_price:""}]);
  const update=(i,k,v)=>setItems(items.map((x,n)=>n===i?{...x,[k]:v}:x));
  const remove=i=>setItems(items.filter((_,n)=>n!==i));
- return <div className="panel procurement-lines"><div className="section-title"><h3>Line Items</h3><button type="button" onClick={add}>+ Add Item</button></div>
-   {items.map((x,i)=><div className="procurement-line" key={i}><input placeholder="Description" value={x.description} required onChange={e=>update(i,"description",e.target.value)}/><input type="number" min="0.001" step="0.001" placeholder="Qty" value={x.quantity} onChange={e=>update(i,"quantity",e.target.value)}/><input placeholder="Unit" value={x.unit} onChange={e=>update(i,"unit",e.target.value)}/><input type="number" min="0" step="0.01" placeholder={priceLabel} value={x.unit_price} onChange={e=>update(i,"unit_price",e.target.value)}/><button type="button" className="danger" disabled={items.length===1} onClick={()=>remove(i)}>Remove</button></div>)}
+ const lineTotal=x=>{const q=Number(x.quantity)||0; const p=Number(x.unit_price)||0; return (q*p).toFixed(2)};
+ const grandTotal=items.reduce((sum,x)=>sum+(Number(x.quantity)||0)*(Number(x.unit_price)||0),0);
+ return <div className="panel procurement-lines">
+   <div className="section-title"><div><h3>Line Items</h3><p className="muted">Enter the requested item, quantity, unit and estimated unit price.</p></div><button type="button" onClick={add}>+ Add Item</button></div>
+   <div className="procurement-line-header" aria-hidden="true"><span>Description</span><span>Quantity</span><span>Unit</span><span>{priceLabel}</span><span>Estimated Total</span><span></span></div>
+   {items.map((x,i)=><div className="procurement-line" key={i}>
+     <div className="procurement-field"><label>Description</label><input placeholder="e.g. Toilet Papers" value={x.description} required onChange={e=>update(i,"description",e.target.value)}/></div>
+     <div className="procurement-field"><label>Quantity</label><input type="number" min="0.001" step="0.001" inputMode="decimal" placeholder="0" value={x.quantity} required onChange={e=>update(i,"quantity",e.target.value)}/></div>
+     <div className="procurement-field"><label>Unit</label><input placeholder="EA" value={x.unit} required onChange={e=>update(i,"unit",e.target.value)}/></div>
+     <div className="procurement-field"><label>{priceLabel}</label><input type="number" min="0" step="0.01" inputMode="decimal" placeholder="0.00" value={x.unit_price} required onChange={e=>update(i,"unit_price",e.target.value)}/></div>
+     <div className="procurement-field"><label>Estimated Total</label><input className="procurement-total" value={lineTotal(x)} readOnly tabIndex={-1}/></div>
+     <button type="button" className="danger procurement-remove" disabled={items.length===1} onClick={()=>remove(i)}>Remove</button>
+   </div>)}
    {!items.length&&<p className="muted">No items added yet.</p>}
+   <div className="procurement-grand-total"><span>Estimated Requisition Value</span><strong>{grandTotal.toFixed(2)}</strong></div>
  </div>
 }
 
