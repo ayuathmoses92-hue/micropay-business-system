@@ -619,6 +619,15 @@ function GoodsReceipts({user}){
 }
 
 function Form({fields,values,setValues,onSubmit}){return <div className="panel"><form onSubmit={onSubmit}>{fields.map(k=><input placeholder={k.replace("_"," ")} required={k==="name"} value={values[k]||""} onChange={e=>setValues({...values,[k]:e.target.value})}/>) }<button>Save</button></form></div>}
-function Table({cols,rows,actions}){return <div className="tablewrap"><table><thead><tr>{cols.map(c=><th key={c}>{c.replaceAll("_"," ")}</th>)}{actions&&<th>Actions</th>}</tr></thead><tbody>{rows.map(r=><tr key={r.id}>{cols.map(c=><td key={c}>{c==="status"?<span className={`status status-${String(r[c]||"").toLowerCase()}`}>{r[c]}</span>:typeof r[c]==="number"||["total","paid","balance","amount"].includes(c)?Number(r[c]||0).toFixed(2):r[c]}</td>)}{actions&&<td className="actions">{actions(r)}</td>}</tr>)}</tbody></table></div>}
-
+function Table({cols,rows,actions}){
+  const cellValue=(r,c)=>{
+    const value=r?.[c];
+    if(c==="status") return <span className={`status status-${String(value||"").toLowerCase()}`}>{String(value??"")}</span>;
+    if(value && typeof value === "object" && !Array.isArray(value)) return value.name || value.code || value.email || "";
+    if(Array.isArray(value)) return value.map((x)=>x?.name||x?.code||String(x)).join(", ");
+    if(typeof value === "number" || ["total","paid","balance","amount"].includes(c)) return Number(value||0).toFixed(2);
+    return value ?? "";
+  };
+  return <div className="tablewrap"><table><thead><tr>{cols.map(c=><th key={c}>{c.replaceAll("_"," ")}</th>)}{actions&&<th>Actions</th>}</tr></thead><tbody>{rows.map(r=><tr key={r.id}>{cols.map(c=><td key={c}>{cellValue(r,c)}</td>)}{actions&&<td className="actions">{actions(r)}</td>}</tr>)}</tbody></table></div>
+}
 function App(){const [user,setUser]=useState(null);const [page,setPage]=useState("Dashboard");const [loading,setLoading]=useState(true);useEffect(()=>{if(!localStorage.getItem("micropay_token")){setLoading(false);return}api("/auth/me").then(x=>setUser(x.user)).catch(()=>localStorage.removeItem("micropay_token")).finally(()=>setLoading(false))},[]);if(loading)return <p>Loading...</p>;if(!user)return <Login onLogin={setUser}/>;const logout=()=>{localStorage.removeItem("micropay_token");setUser(null)};return <Layout page={page} setPage={setPage} user={user} onLogout={logout}/>};createRoot(document.getElementById("root")).render(<App/>);
