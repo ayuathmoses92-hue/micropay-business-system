@@ -18,11 +18,11 @@ export function permissionForRequest(req) {
   const p = String(req.path || "");
   const action = actionFor(req);
   const exact = [
-    [/^\/procurement\/requisitions(?:\/[^/]+)?$/, `procurement.requisitions.${action}`],
-    [/^\/procurement\/rfqs(?:\/[^/]+)?$/, `procurement.rfqs.${action}`],
-    [/^\/procurement\/supplier-quotes(?:\/[^/]+)?$/, `procurement.supplier_quotes.${action}`],
-    [/^\/procurement\/purchase-orders(?:\/[^/]+)?$/, `procurement.purchase_orders.${action}`],
-    [/^\/procurement\/goods-receipts(?:\/[^/]+)?$/, `procurement.goods_receipts.${action}`],
+    [/^\/procurement\/requisitions(?:\/[^/]+)*$/, `procurement.requisitions.${action}`],
+    [/^\/procurement\/rfqs(?:\/[^/]+)*$/, `procurement.rfqs.${action}`],
+    [/^\/procurement\/supplier-quotes(?:\/[^/]+)*$/, `procurement.supplier_quotes.${action}`],
+    [/^\/procurement\/purchase-orders(?:\/[^/]+)*$/, `procurement.purchase_orders.${action}`],
+    [/^\/procurement\/goods-receipts(?:\/[^/]+)*$/, `procurement.goods_receipts.${action}`],
   ];
   for (const [rx, code] of exact) if (rx.test(p)) return code;
 

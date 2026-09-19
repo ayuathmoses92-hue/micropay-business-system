@@ -9,6 +9,10 @@ async function loadAccess(userId) {
     SELECT
       u.id,u.name,u.email,u.role,u.active,
       COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id',ro.id,'code',ro.code,'name',ro.name,'system_role',ro.system_role)) FILTER (WHERE ro.id IS NOT NULL),'[]'::jsonb) AS roles,
+      (SELECT jsonb_build_object('id',pr.id,'code',pr.code,'name',pr.name,'system_role',pr.system_role)
+         FROM user_roles pur JOIN roles pr ON pr.id=pur.role_id
+        WHERE pur.user_id=u.id AND pur.is_primary=TRUE AND pr.active=TRUE
+        LIMIT 1) AS primary_role,
       COALESCE(array_agg(DISTINCT p.code) FILTER (WHERE p.code IS NOT NULL),ARRAY[]::text[]) AS permissions
     FROM users u
     LEFT JOIN user_roles ur ON ur.user_id=u.id

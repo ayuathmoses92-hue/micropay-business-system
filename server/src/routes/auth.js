@@ -11,6 +11,9 @@ const loadAccess = async (userId) => {
   const r = await query(`
     SELECT u.id,u.name,u.email,u.role,u.active,
       COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id',ro.id,'code',ro.code,'name',ro.name,'system_role',ro.system_role)) FILTER (WHERE ro.id IS NOT NULL),'[]'::jsonb) roles,
+      (SELECT pr.name FROM user_roles pur JOIN roles pr ON pr.id=pur.role_id
+        WHERE pur.user_id=u.id AND pur.is_primary=TRUE AND pr.active=TRUE
+        LIMIT 1) primary_role,
       COALESCE(array_agg(DISTINCT p.code) FILTER (WHERE p.code IS NOT NULL),ARRAY[]::text[]) permissions
     FROM users u
     LEFT JOIN user_roles ur ON ur.user_id=u.id
@@ -143,23 +146,30 @@ router.delete("/roles/:id", authenticate, authorize("ADMIN"), async (req,res) =>
 router.get("/users", authenticate, authorize("ADMIN"), async (_,res) => {
   res.json((await query(`
     SELECT u.id,u.name,u.email,u.role,u.active,u.created_at,u.updated_at,
-      COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id',r.id,'code',r.code,'name',r.name,'system_role',r.system_role)) FILTER (WHERE r.id IS NOT NULL),'[]'::jsonb) roles
+      COALESCE(jsonb_agg(DISTINCT jsonb_build_object('id',r.id,'code',r.code,'name',r.name,'system_role',r.system_role)) FILTER (WHERE r.id IS NOT NULL),'[]'::jsonb) roles,
+      (SELECT jsonb_build_object('id',pr.id,'code',pr.code,'name',pr.name,'system_role',pr.system_role)
+         FROM user_roles pur JOIN roles pr ON pr.id=pur.role_id
+        WHERE pur.user_id=u.id AND pur.is_primary=TRUE AND pr.active=TRUE
+        LIMIT 1) primary_role
     FROM users u LEFT JOIN user_roles ur ON ur.user_id=u.id LEFT JOIN roles r ON r.id=ur.role_id
     GROUP BY u.id ORDER BY u.created_at ASC`)).rows);
 });
 
 router.post("/users", authenticate, authorize("ADMIN"), async (req,res) => {
-  const { name,email,password,role="CLERK",role_ids=[] } = req.body;
+  const { name,email,password,role="CLERK",role_ids=[],primary_role_id=null } = req.body;
   if (!name || !email || !password) return res.status(400).json({ error:"Name, email and password are required" });
   if (password.length < 8) return res.status(400).json({ error:"Password must be at least 8 characters" });
-  if (!LEGACY_ROLES.includes(role)) return res.status(400).json({error:"Primary role must be one of the four system roles"});
+  if (!LEGACY_ROLES.includes(role)) return res.status(400).json({error:"Legacy compatibility role must be one of the four system roles"});
   const hash = await bcrypt.hash(password,12);
   try {
     const result=await transaction(async client=>{
       const u=(await client.query("INSERT INTO users(name,email,password_hash,role) VALUES($1,$2,$3,$4) RETURNING id",[name,String(email).trim().toLowerCase(),hash,role])).rows[0];
       const requested=Array.isArray(role_ids)&&role_ids.length?role_ids:[(await client.query("SELECT id FROM roles WHERE code=$1",[role])).rows[0]?.id];
-      await replaceUserRoles(client,u.id,requested,req.user.id);
-      await audit(client,req.user.id,"CREATE","USER",u.id,{name,email,role,role_count:requested.length});
+      const primary = primary_role_id || requested[0];
+      if (!primary) throw new Error("A primary role must be selected");
+      if (!requested.map(String).includes(String(primary))) throw new Error("Primary role must also be assigned to the user");
+      await replaceUserRoles(client,u.id,requested,req.user.id,primary);
+      await audit(client,req.user.id,"CREATE","USER",u.id,{name,email,role,primary_role_id:primary,role_count:requested.length});
       return u;
     });
     res.status(201).json(await loadAccess(result.id));
@@ -167,20 +177,24 @@ router.post("/users", authenticate, authorize("ADMIN"), async (req,res) => {
 });
 
 router.patch("/users/:id", authenticate, authorize("ADMIN"), async (req,res) => {
-  const { name,email,role,active,role_ids } = req.body;
-  if (role !== undefined && !LEGACY_ROLES.includes(role)) return res.status(400).json({ error:"Primary role must be one of the four system roles" });
+  const { name,email,role,active,role_ids,primary_role_id } = req.body;
+  if (role !== undefined && !LEGACY_ROLES.includes(role)) return res.status(400).json({ error:"Legacy compatibility role must be one of the four system roles" });
   if (req.params.id === req.user.id && active === false) return res.status(400).json({ error:"You cannot deactivate your own account" });
-  if (req.params.id === req.user.id && role !== undefined && role !== "ADMIN") return res.status(400).json({ error:"You cannot remove Administrator access from your own primary role" });
+  if (req.params.id === req.user.id && role !== undefined && role !== "ADMIN") return res.status(400).json({ error:"You cannot remove Administrator access from your own legacy compatibility role" });
   try {
     const result=await transaction(async client=>{
       const old=(await client.query("SELECT * FROM users WHERE id=$1 FOR UPDATE",[req.params.id])).rows[0];
       if(!old) throw new Error("User not found");
       const u=(await client.query(`UPDATE users SET name=COALESCE($1,name),email=COALESCE($2,email),role=COALESCE($3,role),active=COALESCE($4,active),updated_at=NOW() WHERE id=$5 RETURNING id`,[name,email?String(email).trim().toLowerCase():null,role,active,old.id])).rows[0];
-      if(Array.isArray(role_ids)){
-        const primaryRole=(await client.query("SELECT id FROM roles WHERE code=$1",[role||old.role])).rows[0];
-        await replaceUserRoles(client,u.id,role_ids,req.user.id,primaryRole?.id);
+      if(Array.isArray(role_ids) || primary_role_id !== undefined){
+        const current=(await client.query("SELECT role_id FROM user_roles WHERE user_id=$1 ORDER BY is_primary DESC",[u.id])).rows.map(x=>x.role_id);
+        const requested=Array.isArray(role_ids)?role_ids:current;
+        const primary=primary_role_id !== undefined ? primary_role_id : requested[0];
+        if (!primary) throw new Error("A primary role must be selected");
+        if (!requested.map(String).includes(String(primary))) throw new Error("Primary role must also be assigned to the user");
+        await replaceUserRoles(client,u.id,requested,req.user.id,primary);
       }
-      await audit(client,req.user.id,"EDIT","USER",u.id,{role_changed:role!==undefined,roles_changed:Array.isArray(role_ids),active});
+      await audit(client,req.user.id,"EDIT","USER",u.id,{role_changed:role!==undefined,roles_changed:Array.isArray(role_ids),primary_role_changed:primary_role_id!==undefined,active});
       return u;
     });
     res.json(await loadAccess(result.id));
