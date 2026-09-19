@@ -612,7 +612,6 @@ function ProcurementItemsEditor({items,setItems,priceLabel="Estimated Unit Price
  const grandTotal=items.reduce((sum,x)=>sum+(Number(x.quantity)||0)*(Number(x.unit_price)||0),0);
  return <div className="panel procurement-lines">
    <div className="section-title"><div><h3>Line Items</h3><p className="muted">Enter the requested item, quantity, unit and estimated unit price.</p></div><button type="button" onClick={add}>+ Add Item</button></div>
-   <div className="procurement-line-header" aria-hidden="true"><span>Description</span><span>Quantity</span><span>Unit</span><span>{priceLabel}</span><span>Estimated Total</span><span></span></div>
    {items.map((x,i)=><div className="procurement-line" key={i}>
      <div className="procurement-field"><label>Description</label><input placeholder="e.g. Toilet Papers" value={x.description} required onChange={e=>update(i,"description",e.target.value)}/></div>
      <div className="procurement-field"><label>Quantity</label><input type="number" min="0.001" step="0.001" inputMode="decimal" placeholder="0" value={x.quantity} required onChange={e=>update(i,"quantity",e.target.value)}/></div>
