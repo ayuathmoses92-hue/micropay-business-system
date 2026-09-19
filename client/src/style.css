@@ -490,3 +490,41 @@ body { overflow: hidden; }
     grid-column: auto !important;
   }
 }
+
+/* Procurement module */
+.procurement-form .form-grid > div > label,
+.procurement-form .form-grid > .form-field-full > label {
+  display:block;
+  margin-bottom:6px;
+  font-weight:600;
+}
+.procurement-lines {
+  margin-top:18px;
+  padding:16px;
+  background:#f8fafc;
+}
+.procurement-lines .section-title {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+.procurement-lines .section-title h3 { margin:0; }
+.procurement-line {
+  display:grid;
+  grid-template-columns:minmax(180px,2fr) minmax(90px,.7fr) minmax(90px,.7fr) minmax(120px,1fr) auto;
+  gap:10px;
+  align-items:center;
+  margin-bottom:10px;
+}
+.procurement-line input,
+.procurement-line select { min-width:0; width:100%; box-sizing:border-box; }
+@media (max-width:900px) {
+  .procurement-line { grid-template-columns:1fr 1fr; }
+  .procurement-line input:first-child { grid-column:1/-1; }
+}
+@media (max-width:560px) {
+  .procurement-line { grid-template-columns:1fr; }
+  .procurement-line input:first-child { grid-column:auto; }
+}
