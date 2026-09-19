@@ -573,3 +573,35 @@ body { overflow: hidden; }
 .procurement-form .form-actions button{margin:0!important}
 @media(max-width:1100px){.procurement-line{grid-template-columns:repeat(2,minmax(0,1fr))!important}.procurement-line input:first-child{grid-column:1/-1!important}}
 @media(max-width:760px){.procurement-form .form-grid{grid-template-columns:1fr!important}.procurement-form .form-grid>.form-field-full{grid-column:auto!important}.procurement-line{grid-template-columns:1fr!important}.procurement-line input:first-child{grid-column:auto!important}}
+
+/* Grouped module navigation */
+.nav-module {
+  margin-top: 8px;
+}
+.nav-module-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  padding: 9px 12px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-align: left;
+  cursor: pointer;
+}
+.nav-module-header:hover { color: #111827; }
+.nav-module-chevron { font-size: 14px; line-height: 1; }
+.nav-module-items { display: flex; flex-direction: column; gap: 2px; }
+.sidebar-sub-link { padding-left: 20px !important; }
+.admin-module { margin-top: 14px; padding-top: 8px; border-top: 1px solid rgba(107,114,128,.16); }
+.admin-module .admin-label { margin-top: 0; }
+@media (max-height: 760px) {
+  .nav-module { margin-top: 4px; }
+  .nav-module-header { padding-top: 6px; padding-bottom: 4px; }
+  .sidebar-sub-link { padding-top: 6px !important; padding-bottom: 6px !important; }
+}

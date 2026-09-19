@@ -24,19 +24,22 @@ class PageErrorBoundary extends React.Component{constructor(props){super(props);
 
 function Layout({page,setPage,user,onLogout}){
   const [profileOpen,setProfileOpen]=useState(false);
-  const items=[
-    ["Dashboard","dashboard.view"],["Customers","customers.view"],["Quotations","quotations.view"],
-    ["Invoices","invoices.view"],["Receipts","receipts.view"],["Expenses","expenses.view"],
-    ["Payment Vouchers","payment_vouchers.view"],["Reports","reports.view"],["Budget vs Actual","budgets.view"],
-    ["Cash & Bank","financial_accounts.view"],["Reconciliation","reconciliation.view"],["Currencies & Rates","currencies.view"],
-    ["Suppliers","suppliers.view"],["Purchase Requisitions","procurement.requisitions.view"],
-    ["RFQs & Quotes","procurement.rfqs.view"],["Purchase Orders","procurement.purchase_orders.view"],
-    ["Goods Receipts","procurement.goods_receipts.view"],["Bills","supplier_bills.view"],
-    ["Customer Statements","statements.view"],["Financial Periods","periods.view"],["Profitability","profitability.view"]
+  const modules=[
+    {key:"sales",label:"SALES & CUSTOMER MANAGEMENT",items:[
+      ["Customers","customers.view"],["Quotations","quotations.view"],["Invoices","invoices.view"],["Receipts","receipts.view"],["Customer Statements","statements.view"]
+    ]},
+    {key:"finance",label:"FINANCIAL MANAGEMENT",items:[
+      ["Expenses","expenses.view"],["Payment Vouchers","payment_vouchers.view"],["Reports","reports.view"],["Budget vs Actual","budgets.view"],["Cash & Bank","financial_accounts.view"],["Reconciliation","reconciliation.view"],["Currencies & Rates","currencies.view"],["Bills","supplier_bills.view"],["Financial Periods","periods.view"],["Profitability","profitability.view"]
+    ]},
+    {key:"procurement",label:"PROCUREMENT",items:[
+      ["Suppliers","suppliers.view"],["Purchase Requisitions","procurement.requisitions.view"],["RFQs & Quotes","procurement.rfqs.view"],["Purchase Orders","procurement.purchase_orders.view"],["Goods Receipts","procurement.goods_receipts.view"]
+    ]}
   ];
-  const nav=items.filter(([,perm])=>can(user,perm)).map(([label])=>label);
-  if(can(user,"roles.view")||can(user,"users.view")) nav.push("Users & Roles");
-  useEffect(()=>{if(!nav.includes(page))setPage(nav[0]||"Dashboard")},[user?.id,user?.permissions?.join(","),page]);
+  const visibleModules=modules.map(m=>({...m,items:m.items.filter(([,perm])=>can(user,perm))})).filter(m=>m.items.length);
+  const allNav=["Dashboard",...visibleModules.flatMap(m=>m.items.map(([label])=>label)),...(can(user,"roles.view")||can(user,"users.view")?["Users & Roles"]:[])];
+  const [openModules,setOpenModules]=useState({sales:true,finance:true,procurement:true});
+  useEffect(()=>{if(!allNav.includes(page))setPage(allNav[0]||"Dashboard")},[user?.id,user?.permissions?.join(","),page]);
+  useEffect(()=>{visibleModules.forEach(m=>{if(m.items.some(([label])=>label===page))setOpenModules(v=>({...v,[m.key]:true}))})},[page]);
   const go=n=>{setPage(n);setProfileOpen(false)};
   const pageMap={"Users & Roles":"Users"};
   return <div className="app-shell">
@@ -49,7 +52,20 @@ function Layout({page,setPage,user,onLogout}){
       </div>
     </header>
     <div className="app-body">
-      <aside className="sidebar"><div className="sidebar-label">MAIN MENU</div>{nav.filter(n=>n!=="Users & Roles").map(n=><button key={n} className={`sidebar-link ${page===n?"active":""}`} onClick={()=>go(n)}><span>{n}</span></button>)}{(can(user,"roles.view")||can(user,"users.view"))&&<><div className="sidebar-label admin-label">ADMINISTRATION</div><button className={`sidebar-link ${page==="Users & Roles"?"active":""}`} onClick={()=>go("Users & Roles")}>Users & Roles</button></>}</aside>
+      <aside className="sidebar">
+        <div className="sidebar-label">MAIN MENU</div>
+        <button className={`sidebar-link ${page==="Dashboard"?"active":""}`} onClick={()=>go("Dashboard")}><span>Dashboard</span></button>
+        {visibleModules.map(m=><div className="nav-module" key={m.key}>
+          <button className="nav-module-header" onClick={()=>setOpenModules(v=>({...v,[m.key]:!v[m.key]}))} aria-expanded={!!openModules[m.key]}>
+            <span>{m.label}</span><span className="nav-module-chevron">{openModules[m.key]?"⌃":"⌄"}</span>
+          </button>
+          {openModules[m.key]&&<div className="nav-module-items">{m.items.map(([label])=><button key={label} className={`sidebar-link sidebar-sub-link ${page===label?"active":""}`} onClick={()=>go(label)}><span>{label}</span></button>)}</div>}
+        </div>)}
+        {(can(user,"roles.view")||can(user,"users.view"))&&<div className="nav-module admin-module">
+          <div className="sidebar-label admin-label">ADMINISTRATION</div>
+          <button className={`sidebar-link sidebar-sub-link ${page==="Users & Roles"?"active":""}`} onClick={()=>go("Users & Roles")}><span>Users & Roles</span></button>
+        </div>}
+      </aside>
       <main className="content-area">
         {pageMap[page]==="Users"?<Users user={user}/>:page==="Dashboard"?<Dashboard/>:page==="Customers"?<Customers user={user}/>:page==="Quotations"?<Quotations user={user}/>:page==="Invoices"?<Invoices user={user}/>:page==="Receipts"?<Receipts user={user}/>:page==="Expenses"?<Expenses user={user}/>:page==="Payment Vouchers"?<PaymentVouchers user={user}/>:page==="Reports"?<Reports user={user}/>:page==="Budget vs Actual"?<BudgetVsActual user={user}/>:page==="Cash & Bank"?<CashBankAccounts user={user}/>:page==="Reconciliation"?<Reconciliation user={user}/>:page==="Currencies & Rates"?<CurrenciesRates user={user}/>:page==="Suppliers"?<Suppliers user={user}/>:page==="Purchase Requisitions"?<PurchaseRequisitions user={user}/>:page==="RFQs & Quotes"?<RFQsQuotes user={user}/>:page==="Purchase Orders"?<PurchaseOrders user={user}/>:page==="Goods Receipts"?<GoodsReceipts user={user}/>:page==="Bills"?<Bills user={user}/>:page==="Customer Statements"?<CustomerStatements user={user}/>:page==="Financial Periods"?<FinancialPeriods user={user}/>:page==="Profitability"?<Profitability user={user}/>:<Dashboard/>}
       </main>
