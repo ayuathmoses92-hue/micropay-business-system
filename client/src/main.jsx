@@ -16,6 +16,7 @@ async function openPdf(path){
 async function api(path,options={}){const token=localStorage.getItem("micropay_token");const headers={"Content-Type":"application/json",...(options.headers||{})};if(token)headers.Authorization=`Bearer ${token}`;const r=await fetch(API+path,{...options,headers});if(!r.ok){const text=await r.text();try{const j=JSON.parse(text);throw new Error(j.error||text)}catch(e){if(e instanceof Error && e.message!==text)throw e;throw new Error(text)}}return r.headers.get("content-type")?.includes("application/json")?r.json():r.blob()}
 
 const ROLE_LABELS={ADMIN:"Administrator",MANAGER:"Manager",FINANCE:"Finance",CLERK:"Clerk"};
+const can=(user,permission)=>user?.role==="ADMIN"||Array.isArray(user?.permissions)&&user.permissions.includes(permission);
 function Login({onLogin}){const [setup,setSetup]=useState(false);const [f,setF]=useState({});const [error,setError]=useState("");const submit=async e=>{e.preventDefault();setError("");try{const data=await api(setup?"/auth/register":"/auth/login",{method:"POST",body:JSON.stringify(setup?{name:f.name,email:f.email,password:f.password,role:"ADMIN"}:{email:f.email,password:f.password})});localStorage.setItem("micropay_token",data.token);onLogin(data.user)}catch(err){setError(err.message)}};return <div className="panel login-panel" style={{maxWidth:480,margin:"80px auto"}}><div style={{textAlign:"center",marginBottom:24}}><img src={logo} alt="Micro Pay Company Limited" className="login-logo" style={{width:"180px",maxWidth:"80%",height:"auto",objectFit:"contain",display:"block",margin:"0 auto 14px"}}/><div style={{fontSize:13,color:"#666"}}>Business Management System</div></div><h2 style={{textAlign:"center"}}>{setup?"Initial Administrator Setup":"Sign In"}</h2>{error&&<p style={{color:"crimson"}}>{error}</p>}<form onSubmit={submit}>{setup&&<input placeholder="Full name" required value={f.name||""} onChange={e=>setF({...f,name:e.target.value})}/>}<input type="email" placeholder="Email" required value={f.email||""} onChange={e=>setF({...f,email:e.target.value})}/><input type="password" placeholder="Password" required minLength="8" value={f.password||""} onChange={e=>setF({...f,password:e.target.value})}/><button>{setup?"Create Administrator":"Sign In"}</button></form><p>{setup?"Already configured?":"First installation?"} <button onClick={()=>{setSetup(!setup);setError("")}}>{setup?"Sign in":"Initial setup"}</button></p></div>}
 
 
@@ -23,53 +24,35 @@ class PageErrorBoundary extends React.Component{constructor(props){super(props);
 
 function Layout({page,setPage,user,onLogout}){
   const [profileOpen,setProfileOpen]=useState(false);
-  const roleNav={
-    ADMIN:["Dashboard","Customers","Quotations","Invoices","Receipts","Expenses","Payment Vouchers","Reports","Budget vs Actual","Cash & Bank","Reconciliation","Currencies & Rates","Suppliers","Purchase Requisitions","RFQs & Quotes","Purchase Orders","Goods Receipts","Bills","Customer Statements","Financial Periods","Profitability","Users"],
-    MANAGER:["Dashboard","Customers","Quotations","Invoices","Receipts","Expenses","Payment Vouchers","Reports","Budget vs Actual","Cash & Bank","Reconciliation","Currencies & Rates","Suppliers","Purchase Requisitions","RFQs & Quotes","Purchase Orders","Goods Receipts","Bills","Customer Statements","Financial Periods","Profitability"],
-    FINANCE:["Dashboard","Customers","Invoices","Receipts","Expenses","Payment Vouchers","Reports","Budget vs Actual","Cash & Bank","Reconciliation","Currencies & Rates","Suppliers","Purchase Requisitions","RFQs & Quotes","Purchase Orders","Goods Receipts","Bills","Customer Statements","Financial Periods","Profitability"],
-    CLERK:["Customers","Quotations","Purchase Requisitions"]
-  };
-  const nav=roleNav[user.role]||["Dashboard"];
-  useEffect(()=>{if(!nav.includes(page))setPage(nav[0])},[user.role,page]);
-  const pageTitle=page;
+  const items=[
+    ["Dashboard","dashboard.view"],["Customers","customers.view"],["Quotations","quotations.view"],
+    ["Invoices","invoices.view"],["Receipts","receipts.view"],["Expenses","expenses.view"],
+    ["Payment Vouchers","payment_vouchers.view"],["Reports","reports.view"],["Budget vs Actual","budgets.view"],
+    ["Cash & Bank","financial_accounts.view"],["Reconciliation","reconciliation.view"],["Currencies & Rates","currencies.view"],
+    ["Suppliers","suppliers.view"],["Purchase Requisitions","procurement.requisitions.view"],
+    ["RFQs & Quotes","procurement.rfqs.view"],["Purchase Orders","procurement.purchase_orders.view"],
+    ["Goods Receipts","procurement.goods_receipts.view"],["Bills","supplier_bills.view"],
+    ["Customer Statements","statements.view"],["Financial Periods","periods.view"],["Profitability","profitability.view"]
+  ];
+  const nav=items.filter(([,perm])=>can(user,perm)).map(([label])=>label);
+  if(can(user,"roles.view")||can(user,"users.view")) nav.push("Users & Roles");
+  useEffect(()=>{if(!nav.includes(page))setPage(nav[0]||"Dashboard")},[user?.id,user?.permissions?.join(","),page]);
   const go=n=>{setPage(n);setProfileOpen(false)};
+  const pageMap={"Users & Roles":"Users"};
   return <div className="app-shell">
     <header className="app-header">
-      <div className="header-brand">
-        <img src={logo} alt="Micro Pay" className="header-logo"/>
-        <div className="brand-copy">
-          <strong>Micro Pay</strong>
-          <span>Business Management System</span>
-        </div>
-      </div>
-      <div className="header-page-title">{pageTitle}</div>
+      <div className="header-brand"><img src={logo} alt="Micro Pay" className="header-logo"/><div className="brand-copy"><strong>Micro Pay</strong><span>Business Management System</span></div></div>
+      <div className="header-page-title">{page}</div>
       <div className="profile-area">
-        <button className="profile-trigger" onClick={()=>setProfileOpen(v=>!v)} aria-expanded={profileOpen}>
-          <span className="avatar">{(user.name||"U").trim().charAt(0).toUpperCase()}</span>
-          <span className="profile-summary"><strong>{user.name}</strong><small>{ROLE_LABELS[user.role]}</small></span>
-          <span className="profile-chevron">⌄</span>
-        </button>
-        {profileOpen&&<>
-          <button className="profile-backdrop" aria-label="Close profile menu" onClick={()=>setProfileOpen(false)}></button>
-          <div className="profile-menu">
-            <div className="profile-menu-head"><strong>{user.name}</strong><span>{user.email}</span><small>{ROLE_LABELS[user.role]}</small></div>
-            <div className="profile-divider"></div>
-            <button className="profile-menu-item" onClick={()=>alert("Profile settings will be available in the next release.")}>My Profile</button>
-            <button className="profile-menu-item" onClick={()=>alert("Password change will be available in the next release.")}>Change Password</button>
-            <div className="profile-divider"></div>
-            <button className="profile-menu-item logout-item" onClick={onLogout}>Logout</button>
-          </div>
-        </>}
+        <button className="profile-trigger" onClick={()=>setProfileOpen(v=>!v)} aria-expanded={profileOpen}><span className="avatar">{(user.name||"U").trim().charAt(0).toUpperCase()}</span><span className="profile-summary"><strong>{user.name}</strong><small>{user.roles?.map(r=>r.name).join(", ")||ROLE_LABELS[user.role]||user.role}</small></span><span className="profile-chevron">⌄</span></button>
+        {profileOpen&&<><button className="profile-backdrop" aria-label="Close profile menu" onClick={()=>setProfileOpen(false)}></button><div className="profile-menu"><div className="profile-menu-head"><strong>{user.name}</strong><span>{user.email}</span><small>{user.roles?.map(r=>r.name).join(", ")||ROLE_LABELS[user.role]||user.role}</small></div><div className="profile-divider"></div><button className="profile-menu-item" onClick={()=>alert("Profile settings will be available in a later release.")}>My Profile</button><button className="profile-menu-item" onClick={()=>alert("Password change will be available in a later release.")}>Change Password</button><div className="profile-divider"></div><button className="profile-menu-item logout-item" onClick={onLogout}>Logout</button></div></>}
       </div>
     </header>
     <div className="app-body">
-      <aside className="sidebar">
-        <div className="sidebar-label">MAIN MENU</div>
-        {nav.map(n=><button key={n} className={`sidebar-link ${page===n?"active":""}`} onClick={()=>go(n)}><span>{n}</span></button>)}
-        {user.role==="ADMIN"&&<div className="sidebar-label admin-label">ADMINISTRATION</div>}
-        {user.role==="ADMIN"&&<button className={`sidebar-link ${page==="Users"?"active":""}`} onClick={()=>go("Users")}>Users & Roles</button>}
-      </aside>
-      <main className="content-area"><PageErrorBoundary>{page==="Dashboard"?<Dashboard/>:page==="Customers"?<Customers user={user}/>:page==="Quotations"?<Quotations user={user}/>:page==="Invoices"?<Invoices user={user}/>:page==="Receipts"?<Receipts user={user}/>:page==="Expenses"?<Expenses user={user}/>:page==="Payment Vouchers"?<PaymentVouchers user={user}/>:page==="Reports"?<Reports user={user}/>:page==="Budget vs Actual"?<BudgetVsActual user={user}/>:page==="Cash & Bank"?<CashBankAccounts user={user}/>:page==="Reconciliation"?<Reconciliation user={user}/>:page==="Currencies & Rates"?<CurrenciesRates user={user}/>:page==="Suppliers"?<Suppliers user={user}/>:page==="Purchase Requisitions"?<PurchaseRequisitions user={user}/>:page==="RFQs & Quotes"?<RFQsQuotes user={user}/>:page==="Purchase Orders"?<PurchaseOrders user={user}/>:page==="Goods Receipts"?<GoodsReceipts user={user}/>:page==="Bills"?<Bills user={user}/>:page==="Customer Statements"?<CustomerStatements user={user}/>:page==="Financial Periods"?<FinancialPeriods user={user}/>:page==="Profitability"?<Profitability user={user}/>:<Users/>}</PageErrorBoundary></main>
+      <aside className="sidebar"><div className="sidebar-label">MAIN MENU</div>{nav.filter(n=>n!=="Users & Roles").map(n=><button key={n} className={`sidebar-link ${page===n?"active":""}`} onClick={()=>go(n)}><span>{n}</span></button>)}{(can(user,"roles.view")||can(user,"users.view"))&&<><div className="sidebar-label admin-label">ADMINISTRATION</div><button className={`sidebar-link ${page==="Users & Roles"?"active":""}`} onClick={()=>go("Users & Roles")}>Users & Roles</button></>}</aside>
+      <main className="content-area">
+        {pageMap[page]==="Users"?<Users user={user}/>:page==="Dashboard"?<Dashboard/>:page==="Customers"?<Customers user={user}/>:page==="Quotations"?<Quotations user={user}/>:page==="Invoices"?<Invoices user={user}/>:page==="Receipts"?<Receipts user={user}/>:page==="Expenses"?<Expenses user={user}/>:page==="Payment Vouchers"?<PaymentVouchers user={user}/>:page==="Reports"?<Reports user={user}/>:page==="Budget vs Actual"?<BudgetVsActual user={user}/>:page==="Cash & Bank"?<CashBankAccounts user={user}/>:page==="Reconciliation"?<Reconciliation user={user}/>:page==="Currencies & Rates"?<CurrenciesRates user={user}/>:page==="Suppliers"?<Suppliers user={user}/>:page==="Purchase Requisitions"?<PurchaseRequisitions user={user}/>:page==="RFQs & Quotes"?<RFQsQuotes user={user}/>:page==="Purchase Orders"?<PurchaseOrders user={user}/>:page==="Goods Receipts"?<GoodsReceipts user={user}/>:page==="Bills"?<Bills user={user}/>:page==="Customer Statements"?<CustomerStatements user={user}/>:page==="Financial Periods"?<FinancialPeriods user={user}/>:page==="Profitability"?<Profitability user={user}/>:<Dashboard/>}
+      </main>
     </div>
   </div>
 }
@@ -533,95 +516,53 @@ function Profitability({user}){
   </>;
 }
 
-function Users(){
-  const [rows,setRows]=useState([]);
-  const [open,setOpen]=useState(false);
-  const [mode,setMode]=useState(null);
-  const [selected,setSelected]=useState(null);
-  const [f,setF]=useState({role:"CLERK"});
-  const load=()=>api("/auth/users").then(setRows).catch(e=>alert(e.message));
+function Users({user}){
+  const [tab,setTab]=useState(can(user,"roles.view")?"users":"roles");
+  const [users,setUsers]=useState([]),[roles,setRoles]=useState([]),[permissions,setPermissions]=useState([]);
+  const [openUser,setOpenUser]=useState(false),[openRole,setOpenRole]=useState(false),[mode,setMode]=useState(null),[selected,setSelected]=useState(null);
+  const [uf,setUf]=useState({role:"CLERK",role_ids:[]});
+  const [rf,setRf]=useState({code:"",name:"",description:"",permission_ids:[]});
+  const load=async()=>{try{if(can(user,"users.view"))setUsers(await api("/auth/users"));if(can(user,"roles.view")){setRoles(await api("/auth/roles"));setPermissions(await api("/auth/permissions"))}}catch(e){alert(e.message)}};
   useEffect(()=>{load()},[]);
-
-  const close=()=>{setOpen(false);setMode(null);setSelected(null);setF({role:"CLERK"})};
-
-  const create=()=>{setSelected(null);setMode("create");setF({role:"CLERK"});setOpen(true)};
-  const edit=r=>{setSelected(r);setMode("edit");setF({name:r.name||"",email:r.email||"",role:r.role||"CLERK"});setOpen(true)};
-  const reset=r=>{setSelected(r);setMode("reset");setF({password:""});setOpen(true)};
-
-  const save=async e=>{
-    e.preventDefault();
-    try{
-      if(mode==="create"){
-        await api("/auth/users",{method:"POST",body:JSON.stringify(f)});
-      }else if(mode==="edit"){
-        await api(`/auth/users/${selected.id}`,{method:"PATCH",body:JSON.stringify({name:f.name,email:f.email,role:f.role})});
-      }else if(mode==="reset"){
-        await api(`/auth/users/${selected.id}/reset-password`,{method:"POST",body:JSON.stringify({password:f.password})});
-        alert("Password reset successfully.");
-      }
-      close();
-      load();
-    }catch(err){alert(err.message)}
-  };
-
-  const toggle=async r=>{
-    try{
-      await api(`/auth/users/${r.id}`,{method:"PATCH",body:JSON.stringify({active:!r.active})});
-      load();
-    }catch(err){alert(err.message)}
-  };
-
-  const remove=async r=>{
-    if(!window.confirm(`Delete user ${r.name}? This action cannot be undone. Users with associated records cannot be deleted.`))return;
-    try{
-      await api(`/auth/users/${r.id}`,{method:"DELETE"});
-      load();
-    }catch(err){alert(err.message)}
-  };
-
+  const closeUser=()=>{setOpenUser(false);setMode(null);setSelected(null);setUf({role:"CLERK",role_ids:[]})};
+  const closeRole=()=>{setOpenRole(false);setSelected(null);setRf({code:"",name:"",description:"",permission_ids:[]})};
+  const createUser=()=>{setMode("create");setSelected(null);setUf({role:"CLERK",role_ids:roles.filter(r=>r.code==="CLERK").map(r=>r.id)});setOpenUser(true)};
+  const editUser=r=>{setMode("edit");setSelected(r);setUf({name:r.name||"",email:r.email||"",role:r.role||"CLERK",role_ids:(r.roles||[]).map(x=>x.id)});setOpenUser(true)};
+  const resetUser=r=>{setMode("reset");setSelected(r);setUf({password:""});setOpenUser(true)};
+  const saveUser=async e=>{e.preventDefault();try{if(mode==="create")await api("/auth/users",{method:"POST",body:JSON.stringify(uf)});else if(mode==="edit")await api(`/auth/users/${selected.id}`,{method:"PATCH",body:JSON.stringify({name:uf.name,email:uf.email,role:uf.role,role_ids:uf.role_ids})});else await api(`/auth/users/${selected.id}/reset-password`,{method:"POST",body:JSON.stringify({password:uf.password})});closeUser();load()}catch(e){alert(e.message)}};
+  const toggleUser=async r=>{try{await api(`/auth/users/${r.id}`,{method:"PATCH",body:JSON.stringify({active:!r.active})});load()}catch(e){alert(e.message)}};
+  const deleteUser=async r=>{if(!confirm(`Delete user ${r.name}?`))return;try{await api(`/auth/users/${r.id}`,{method:"DELETE"});load()}catch(e){alert(e.message)}};
+  const createRole=()=>{setSelected(null);setRf({code:"",name:"",description:"",permission_ids:[]});setOpenRole(true)};
+  const editRole=r=>{setSelected(r);setRf({code:r.code,name:r.name,description:r.description||"",permission_ids:(r.permissions||[]).map(p=>p.id)});setOpenRole(true)};
+  const saveRole=async e=>{e.preventDefault();try{if(selected)await api(`/auth/roles/${selected.id}`,{method:"PATCH",body:JSON.stringify({name:rf.name,description:rf.description,active:selected.active,permission_ids:rf.permission_ids})});else await api("/auth/roles",{method:"POST",body:JSON.stringify(rf)});closeRole();load()}catch(e){alert(e.message)}};
+  const toggleRole=async r=>{try{await api(`/auth/roles/${r.id}`,{method:"PATCH",body:JSON.stringify({active:!r.active,permission_ids:(r.permissions||[]).map(p=>p.id)})});load()}catch(e){alert(e.message)}};
+  const deleteRole=async r=>{if(!confirm(`Delete role ${r.name}?`))return;try{await api(`/auth/roles/${r.id}`,{method:"DELETE"});load()}catch(e){alert(e.message)}};
+  const togglePermission=(id)=>setRf(v=>({...v,permission_ids:v.permission_ids.includes(id)?v.permission_ids.filter(x=>x!==id):[...v.permission_ids,id]}));
+  const grouped=permissions.reduce((a,p)=>{(a[p.module]??=[]).push(p);return a},{});
   return <>
-    <div className="toolbar"><h1>Users & Roles</h1><button onClick={create}>+ New User</button></div>
-    {open&&<div className="panel">
-      <h2>{mode==="create"?"New User":mode==="edit"?`Edit ${selected?.name||"User"}`:`Reset Password — ${selected?.name||"User"}`}</h2>
-      <form onSubmit={save}>
-        {mode!=="reset"&&<>
-          <input placeholder="Full name" required value={f.name||""} onChange={e=>setF({...f,name:e.target.value})}/>
-          <input type="email" placeholder="Email" required value={f.email||""} onChange={e=>setF({...f,email:e.target.value})}/>
-          {mode==="create"&&<input type="password" placeholder="Temporary password (8+ characters)" minLength="8" required value={f.password||""} onChange={e=>setF({...f,password:e.target.value})}/>} 
-          <select value={f.role||"CLERK"} onChange={e=>setF({...f,role:e.target.value})}>{Object.entries(ROLE_LABELS).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select>
-        </>}
-        {mode==="reset"&&<input type="password" placeholder="New password (8+ characters)" minLength="8" required value={f.password||""} onChange={e=>setF({...f,password:e.target.value})}/>} 
-        <button>{mode==="create"?"Create User":mode==="edit"?"Save Changes":"Reset Password"}</button>
-        <button type="button" onClick={close}>Cancel</button>
-      </form>
-    </div>}
-    <Table cols={["name","email","role","active"]} rows={rows} actions={r=><>
-      <button type="button" onClick={()=>edit(r)}>Edit</button>
-      <button type="button" onClick={()=>reset(r)}>Reset Password</button>
-      <button type="button" onClick={()=>toggle(r)}>{r.active?"Deactivate":"Activate"}</button>
-      <button type="button" className="danger" onClick={()=>remove(r)}>Delete</button>
-    </>}/>
+    <div className="toolbar"><div><h1>Users & Roles</h1><p className="muted">Manage users, configurable roles and ERP permissions.</p></div>{tab==="users"&&can(user,"users.create")?<button onClick={createUser}>+ New User</button>:tab==="roles"&&can(user,"roles.create")?<button onClick={createRole}>+ New Role</button>:null}</div>
+    <div className="admin-tabs"><button className={tab==="users"?"active":""} onClick={()=>setTab("users")}>Users</button><button className={tab==="roles"?"active":""} onClick={()=>setTab("roles")}>Roles & Permissions</button></div>
+    {tab==="users"&&<>
+      {openUser&&<div className="panel role-admin-form"><h2>{mode==="create"?"New User":mode==="edit"?`Edit ${selected?.name||"User"}`:`Reset Password — ${selected?.name||"User"}`}</h2><form onSubmit={saveUser}>
+        {mode!=="reset"&&<><div><label>Full Name</label><input required value={uf.name||""} onChange={e=>setUf({...uf,name:e.target.value})}/></div><div><label>Email</label><input type="email" required value={uf.email||""} onChange={e=>setUf({...uf,email:e.target.value})}/></div>{mode==="create"&&<div><label>Temporary Password</label><input type="password" minLength="8" required value={uf.password||""} onChange={e=>setUf({...uf,password:e.target.value})}/></div>}<div><label>Primary Compatibility Role</label><select value={uf.role} onChange={e=>setUf({...uf,role:e.target.value})}>{Object.entries(ROLE_LABELS).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></div><div className="role-checkbox-section"><label>Assigned Roles</label><div className="role-checkboxes">{roles.filter(r=>r.active).map(r=><label key={r.id} className="check-row"><input type="checkbox" checked={uf.role_ids.includes(r.id)} onChange={()=>setUf(v=>({...v,role_ids:v.role_ids.includes(r.id)?v.role_ids.filter(x=>x!==r.id):[...v.role_ids,r.id]}))}/><span>{r.name}</span>{r.system_role&&<small>system</small>}</label>)}</div></div></>}
+        {mode==="reset"&&<div><label>New Password</label><input type="password" minLength="8" required value={uf.password||""} onChange={e=>setUf({...uf,password:e.target.value})}/></div>}
+        <div className="form-actions"><button>{mode==="create"?"Create User":mode==="edit"?"Save Changes":"Reset Password"}</button><button type="button" onClick={closeUser}>Cancel</button></div>
+      </form></div>}
+      <Table cols={["name","email","role","active"]} rows={users} actions={r=><><span className="role-chip-list">{(r.roles||[]).map(x=><span className="role-chip" key={x.id}>{x.name}</span>)}</span>{can(user,"users.edit")&&<button onClick={()=>editUser(r)}>Edit</button>}{can(user,"users.reset_password")&&<button onClick={()=>resetUser(r)}>Reset Password</button>}{can(user,"users.activate")&&<button onClick={()=>toggleUser(r)}>{r.active?"Deactivate":"Activate"}</button>}{can(user,"users.delete")&&<button className="danger" onClick={()=>deleteUser(r)}>Delete</button>}</>}/>
+    </>}
+    {tab==="roles"&&<>
+      {openRole&&<div className="panel role-admin-form"><h2>{selected?`Edit Role — ${selected.name}`:"New Role"}</h2><form onSubmit={saveRole}>{!selected&&<div><label>Role Code</label><input required value={rf.code} placeholder="e.g. PROCUREMENT_OFFICER" onChange={e=>setRf({...rf,code:e.target.value})}/></div>}<div><label>Role Name</label><input required value={rf.name} onChange={e=>setRf({...rf,name:e.target.value})}/></div><div className="form-field-full"><label>Description</label><textarea value={rf.description} onChange={e=>setRf({...rf,description:e.target.value})}/></div><div className="permission-grid">{Object.entries(grouped).map(([module,list])=><div className="permission-group" key={module}><h3>{module}</h3>{list.map(p=><label className="check-row" key={p.id}><input type="checkbox" checked={rf.permission_ids.includes(p.id)} onChange={()=>togglePermission(p.id)}/><span><strong>{p.name}</strong><small>{p.code}</small></span></label>)}</div>)}</div><div className="form-actions"><button>Save Role</button><button type="button" onClick={closeRole}>Cancel</button></div></form></div>}
+      <Table cols={["code","name","system_role","active","user_count"]} rows={roles} actions={r=><>{can(user,"roles.edit")&&<button onClick={()=>editRole(r)}>Edit Permissions</button>}{can(user,"roles.activate")&&!r.system_role&&<button onClick={()=>toggleRole(r)}>{r.active?"Deactivate":"Activate"}</button>}{can(user,"roles.delete")&&!r.system_role&&<button className="danger" onClick={()=>deleteRole(r)}>Delete</button>}</>}/>
+    </>}
   </>
 }
-
 function ProcurementItemsEditor({items,setItems,priceLabel="Estimated Unit Price"}){
  const add=()=>setItems([...items,{description:"",quantity:1,unit:"EA",unit_price:""}]);
  const update=(i,k,v)=>setItems(items.map((x,n)=>n===i?{...x,[k]:v}:x));
  const remove=i=>setItems(items.filter((_,n)=>n!==i));
- const lineTotal=x=>{const q=Number(x.quantity)||0; const p=Number(x.unit_price)||0; return (q*p).toFixed(2)};
- const grandTotal=items.reduce((sum,x)=>sum+(Number(x.quantity)||0)*(Number(x.unit_price)||0),0);
- return <div className="panel procurement-lines">
-   <div className="section-title"><div><h3>Line Items</h3><p className="muted">Enter the requested item, quantity, unit and estimated unit price.</p></div><button type="button" onClick={add}>+ Add Item</button></div>
-   {items.map((x,i)=><div className="procurement-line" key={i}>
-     <div className="procurement-field"><label>Description</label><input placeholder="e.g. Toilet Papers" value={x.description} required onChange={e=>update(i,"description",e.target.value)}/></div>
-     <div className="procurement-field"><label>Quantity</label><input type="number" min="0.001" step="0.001" inputMode="decimal" placeholder="0" value={x.quantity} required onChange={e=>update(i,"quantity",e.target.value)}/></div>
-     <div className="procurement-field"><label>Unit</label><input placeholder="EA" value={x.unit} required onChange={e=>update(i,"unit",e.target.value)}/></div>
-     <div className="procurement-field"><label>{priceLabel}</label><input type="number" min="0" step="0.01" inputMode="decimal" placeholder="0.00" value={x.unit_price} required onChange={e=>update(i,"unit_price",e.target.value)}/></div>
-     <div className="procurement-field"><label>Estimated Total</label><input className="procurement-total" value={lineTotal(x)} readOnly tabIndex={-1}/></div>
-     <button type="button" className="danger procurement-remove" disabled={items.length===1} onClick={()=>remove(i)}>Remove</button>
-   </div>)}
+ return <div className="panel procurement-lines"><div className="section-title"><h3>Line Items</h3><button type="button" onClick={add}>+ Add Item</button></div>
+   {items.map((x,i)=><div className="procurement-line" key={i}><input placeholder="Description" value={x.description} required onChange={e=>update(i,"description",e.target.value)}/><input type="number" min="0.001" step="0.001" placeholder="Qty" value={x.quantity} onChange={e=>update(i,"quantity",e.target.value)}/><input placeholder="Unit" value={x.unit} onChange={e=>update(i,"unit",e.target.value)}/><input type="number" min="0" step="0.01" placeholder={priceLabel} value={x.unit_price} onChange={e=>update(i,"unit_price",e.target.value)}/><button type="button" className="danger" disabled={items.length===1} onClick={()=>remove(i)}>Remove</button></div>)}
    {!items.length&&<p className="muted">No items added yet.</p>}
-   <div className="procurement-grand-total"><span>Estimated Requisition Value</span><strong>{grandTotal.toFixed(2)}</strong></div>
  </div>
 }
 
@@ -635,7 +576,7 @@ function PurchaseRequisitions({user}){
  const action=async(r,path,body,msg)=>{if(!confirm(msg))return;try{await api(path,{method:"POST",body:JSON.stringify(body||{})});load()}catch(e){alert(e.message)}};
  return <><div className="toolbar"><div><h1>Purchase Requisitions</h1><p className="muted">Internal requests for goods and services before sourcing and purchase.</p></div><button onClick={()=>{setEditing(null);setOpen(true)}}>+ New Requisition</button></div>
  {open&&<div className="panel procurement-form"><h2>{editing?`Edit ${editing.number}`:"New Purchase Requisition"}</h2><form onSubmit={save}><div className="form-grid"><div><label>Request Date</label><input type="date" value={f.request_date} required onChange={e=>setF({...f,request_date:e.target.value})}/></div><div><label>Required Date</label><input type="date" value={f.required_date} onChange={e=>setF({...f,required_date:e.target.value})}/></div><div><label>Department</label><input value={f.department} onChange={e=>setF({...f,department:e.target.value})}/></div><div><label>Priority</label><select value={f.priority} onChange={e=>setF({...f,priority:e.target.value})}><option>LOW</option><option>NORMAL</option><option>HIGH</option><option>URGENT</option></select></div><div className="form-field-full"><label>Purpose</label><textarea required value={f.purpose} onChange={e=>setF({...f,purpose:e.target.value})}/></div><div className="form-field-full"><label>Notes</label><textarea value={f.notes} onChange={e=>setF({...f,notes:e.target.value})}/></div></div><ProcurementItemsEditor items={items} setItems={setItems}/><div className="form-actions"><button>{editing?"Save Changes":"Save Draft"}</button><button type="button" onClick={reset}>Cancel</button></div></form></div>}
- <Table cols={["number","request_date","department","purpose","priority","status","estimated_value"]} rows={rows} actions={r=><>{r.status==="DRAFT"&&<button onClick={()=>edit(r)}>Edit</button>}{r.status==="DRAFT"&&<button onClick={()=>action(r,`/procurement/requisitions/${r.id}/submit`,{},"Submit this requisition for approval?")}>Submit</button>}{r.status==="SUBMITTED"&&(user.role==="ADMIN"||user.role==="MANAGER")&&<><button onClick={()=>action(r,`/procurement/requisitions/${r.id}/approve`,{},"Approve this purchase requisition?")}>Approve</button><button onClick={()=>{const reason=prompt("Rejection reason:");if(reason)action(r,`/procurement/requisitions/${r.id}/reject`,{reason},"Reject this requisition?")}}>Reject</button></>}{["DRAFT","SUBMITTED","REJECTED"].includes(r.status)&&(user.role==="ADMIN"||user.role==="MANAGER")&&<button className="danger" onClick={()=>action(r,`/procurement/requisitions/${r.id}/cancel`,{},"Cancel this requisition?")}>Cancel</button>}</>}/>
+ <Table cols={["number","request_date","department","purpose","priority","status","estimated_value"]} rows={rows} actions={r=><>{r.status==="DRAFT"&&<button onClick={()=>edit(r)}>Edit</button>}{r.status==="DRAFT"&&<button onClick={()=>action(r,`/procurement/requisitions/${r.id}/submit`,{},"Submit this requisition for approval?")}>Submit</button>}{r.status==="SUBMITTED"&&can(user,"procurement.requisitions.approve")&&<><button onClick={()=>action(r,`/procurement/requisitions/${r.id}/approve`,{},"Approve this purchase requisition?")}>Approve</button><button onClick={()=>{const reason=prompt("Rejection reason:");if(reason)action(r,`/procurement/requisitions/${r.id}/reject`,{reason},"Reject this requisition?")}}>Reject</button></>}{["DRAFT","SUBMITTED","REJECTED"].includes(r.status)&&can(user,"procurement.requisitions.cancel")&&<button className="danger" onClick={()=>action(r,`/procurement/requisitions/${r.id}/cancel`,{},"Cancel this requisition?")}>Cancel</button>}</>}/>
  </>;
 }
 

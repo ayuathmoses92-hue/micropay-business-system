@@ -1,3 +1,4 @@
+import { authorizeLegacyOrPermission } from "../middleware/permissions.js";
 import { Router } from "express";
 import { query, transaction } from "../db.js";
 import { nextNumber } from "../utils/sequence.js";
@@ -6,11 +7,7 @@ import phase4Router from "./phase4.js";
 
 const router = Router();
 router.use(phase4Router);
-const roleAllowed = (req, roles) => roles.includes(req.user?.role);
-const requireRole = (req, res, roles) => {
-  if (!roleAllowed(req, roles)) { res.status(403).json({ error: "You do not have permission for this action" }); return false; }
-  return true;
-};
+const requireRole = (req, res, roles) => authorizeLegacyOrPermission(req,res,roles);
 const audit = async (client, userId, action, entityType, entityId, details={}) => {
   await client.query("INSERT INTO audit_logs(user_id,action,entity_type,entity_id,details) VALUES($1,$2,$3,$4,$5)", [userId||null, action, entityType, entityId||null, JSON.stringify(details)]);
 };
