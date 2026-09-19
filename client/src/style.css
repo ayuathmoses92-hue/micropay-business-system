@@ -605,3 +605,164 @@ body { overflow: hidden; }
   .nav-module-header { padding-top: 6px; padding-bottom: 4px; }
   .sidebar-sub-link { padding-top: 6px !important; padding-bottom: 6px !important; }
 }
+
+
+/* Beautified ERP navigation v2 */
+.sidebar {
+  width: 258px;
+  padding: 20px 12px 24px;
+  background: linear-gradient(180deg,#ffffff 0%,#f8fafb 100%);
+  border-right: 1px solid #d9e2e7;
+  box-shadow: 3px 0 14px rgba(36,79,106,.045);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.sidebar::-webkit-scrollbar{width:7px}
+.sidebar::-webkit-scrollbar-thumb{background:#cbd7de;border-radius:10px}
+.sidebar::-webkit-scrollbar-track{background:transparent}
+.sidebar-label{
+  font-size:10px;
+  font-weight:800;
+  color:#87959d;
+  letter-spacing:.12em;
+  padding:2px 12px 10px;
+}
+.sidebar-link{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  width:100%;
+  min-height:39px;
+  border:1px solid transparent;
+  background:transparent;
+  color:#50636e;
+  text-align:left;
+  padding:8px 12px;
+  border-radius:8px;
+  margin:2px 0;
+  font-size:13px;
+  font-weight:500;
+  transition:background .16s ease,color .16s ease,transform .16s ease,box-shadow .16s ease;
+}
+.sidebar-link:hover{
+  background:#edf4f7;
+  color:#244f6a;
+  transform:translateX(1px);
+}
+.sidebar-link.active{
+  background:linear-gradient(90deg,#e3eff4 0%,#eef5f7 100%);
+  color:#244f6a;
+  font-weight:750;
+  border-color:#d5e5eb;
+  box-shadow:0 2px 7px rgba(47,102,136,.07);
+}
+.sidebar-link.active:before{
+  content:"";
+  position:absolute;
+  left:-1px;
+  top:7px;
+  bottom:7px;
+  width:3px;
+  border-radius:0 3px 3px 0;
+  background:#2f6688;
+}
+.nav-item-icon{
+  width:22px;
+  flex:0 0 22px;
+  text-align:center;
+  color:#78909c;
+  font-size:15px;
+  line-height:1;
+}
+.dashboard-link{margin-bottom:9px}
+.dashboard-link .nav-item-icon{color:#2f6688;font-size:16px}
+.nav-item-dot{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#aebdc5;
+  flex:0 0 6px;
+  margin-left:3px;
+  transition:background .16s ease,transform .16s ease;
+}
+.sidebar-sub-link.active .nav-item-dot{background:#2f6688;transform:scale(1.2)}
+.nav-module{
+  margin-top:7px;
+  padding:4px 5px 7px;
+  border:1px solid transparent;
+  border-radius:11px;
+}
+.nav-module:hover{
+  border-color:#e5ecef;
+  background:rgba(248,251,252,.8);
+}
+.nav-module-header{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border:0;
+  background:transparent;
+  color:#6d7d86;
+  padding:9px 8px 7px;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.075em;
+  text-align:left;
+  cursor:pointer;
+  border-radius:7px;
+}
+.nav-module-header:hover{color:#244f6a;background:#f1f6f8}
+.nav-module-title{display:flex;align-items:center;gap:8px;min-width:0}
+.nav-module-title>span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-module-icon{
+  display:grid;
+  place-items:center;
+  width:22px;
+  height:22px;
+  border-radius:6px;
+  background:#edf3f6;
+  color:#2f6688;
+  font-size:11px;
+  flex:0 0 22px;
+}
+.nav-module-chevron{
+  width:20px;
+  height:20px;
+  display:grid;
+  place-items:center;
+  border-radius:5px;
+  background:#f0f4f6;
+  color:#7b8a92;
+  font-size:12px;
+  line-height:1;
+  flex:0 0 20px;
+}
+.nav-module-items{display:flex;flex-direction:column;gap:1px;padding:1px 1px 0 7px}
+.sidebar-sub-link{padding-left:11px!important;min-height:36px}
+.admin-module{
+  margin-top:15px;
+  padding:12px 5px 7px;
+  border:1px solid #e2e8eb;
+  background:#f8fafb;
+}
+.admin-module .admin-label{margin:0;padding:1px 8px 8px}
+.admin-nav-link .nav-item-icon{color:#657982}
+@media(max-width:850px){
+  .sidebar{width:215px}
+  .nav-module-title>span:last-child{font-size:9px}
+}
+@media(max-width:650px){
+  .sidebar{width:100%;height:auto;padding:8px;box-shadow:none;display:flex;align-items:flex-start;overflow-x:auto;overflow-y:hidden;gap:5px}
+  .sidebar-label,.nav-module{flex:0 0 auto}
+  .sidebar-label{display:none}
+  .dashboard-link{width:auto;margin:0}
+  .nav-module{margin:0;padding:2px;border:1px solid #e1e8ec;background:#fff}
+  .nav-module-header{width:auto;min-width:170px}
+  .nav-module-items{position:absolute;z-index:20;background:#fff;border:1px solid #dce4e9;border-radius:9px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:7px;min-width:210px}
+  .admin-module{margin:0;padding:2px;border:1px solid #e1e8ec}
+  .admin-module .admin-label{display:none}
+  .admin-nav-link{width:auto}
+}

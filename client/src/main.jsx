@@ -25,13 +25,13 @@ class PageErrorBoundary extends React.Component{constructor(props){super(props);
 function Layout({page,setPage,user,onLogout}){
   const [profileOpen,setProfileOpen]=useState(false);
   const modules=[
-    {key:"sales",label:"SALES & CUSTOMER MANAGEMENT",items:[
+    {key:"sales",icon:"◈",label:"SALES & CUSTOMER MANAGEMENT",items:[
       ["Customers","customers.view"],["Quotations","quotations.view"],["Invoices","invoices.view"],["Receipts","receipts.view"],["Customer Statements","statements.view"]
     ]},
-    {key:"finance",label:"FINANCIAL MANAGEMENT",items:[
+    {key:"finance",icon:"▣",label:"FINANCIAL MANAGEMENT",items:[
       ["Expenses","expenses.view"],["Payment Vouchers","payment_vouchers.view"],["Reports","reports.view"],["Budget vs Actual","budgets.view"],["Cash & Bank","financial_accounts.view"],["Reconciliation","reconciliation.view"],["Currencies & Rates","currencies.view"],["Bills","supplier_bills.view"],["Financial Periods","periods.view"],["Profitability","profitability.view"]
     ]},
-    {key:"procurement",label:"PROCUREMENT",items:[
+    {key:"procurement",icon:"◆",label:"PROCUREMENT",items:[
       ["Suppliers","suppliers.view"],["Purchase Requisitions","procurement.requisitions.view"],["RFQs & Quotes","procurement.rfqs.view"],["Purchase Orders","procurement.purchase_orders.view"],["Goods Receipts","procurement.goods_receipts.view"]
     ]}
   ];
@@ -54,16 +54,16 @@ function Layout({page,setPage,user,onLogout}){
     <div className="app-body">
       <aside className="sidebar">
         <div className="sidebar-label">MAIN MENU</div>
-        <button className={`sidebar-link ${page==="Dashboard"?"active":""}`} onClick={()=>go("Dashboard")}><span>Dashboard</span></button>
+        <button className={`sidebar-link dashboard-link ${page==="Dashboard"?"active":""}`} onClick={()=>go("Dashboard")}><span className="nav-item-icon">⌂</span><span>Dashboard</span></button>
         {visibleModules.map(m=><div className="nav-module" key={m.key}>
           <button className="nav-module-header" onClick={()=>setOpenModules(v=>({...v,[m.key]:!v[m.key]}))} aria-expanded={!!openModules[m.key]}>
-            <span>{m.label}</span><span className="nav-module-chevron">{openModules[m.key]?"⌃":"⌄"}</span>
+            <span className="nav-module-title"><span className="nav-module-icon">{m.icon}</span><span>{m.label}</span></span><span className="nav-module-chevron">{openModules[m.key]?"⌃":"⌄"}</span>
           </button>
           {openModules[m.key]&&<div className="nav-module-items">{m.items.map(([label])=><button key={label} className={`sidebar-link sidebar-sub-link ${page===label?"active":""}`} onClick={()=>go(label)}><span>{label}</span></button>)}</div>}
         </div>)}
         {(can(user,"roles.view")||can(user,"users.view"))&&<div className="nav-module admin-module">
           <div className="sidebar-label admin-label">ADMINISTRATION</div>
-          <button className={`sidebar-link sidebar-sub-link ${page==="Users & Roles"?"active":""}`} onClick={()=>go("Users & Roles")}><span>Users & Roles</span></button>
+          <button className={`sidebar-link sidebar-sub-link admin-nav-link ${page==="Users & Roles"?"active":""}`} onClick={()=>go("Users & Roles")}><span className="nav-item-icon">⚙</span><span>Users & Roles</span></button>
         </div>}
       </aside>
       <main className="content-area">
