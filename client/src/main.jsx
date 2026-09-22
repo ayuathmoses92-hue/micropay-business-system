@@ -63,7 +63,7 @@ function Layout({page,setPage,user,onLogout}){
         <button className={`sidebar-link dashboard-link ${page==="Dashboard"?"active":""}`} onClick={()=>go("Dashboard")}><span className="nav-item-icon">⌂</span><span>Dashboard</span></button>
         {visibleModules.map(m=><div className="nav-module" key={m.key}>
           <button className="nav-module-header" onClick={()=>toggleModule(m.key)} aria-expanded={!!openModules[m.key]}>
-            <span className="nav-module-title"><span className="nav-module-icon">{m.key==="sales"?"♙":m.key==="finance"?"▣":"◇"}</span><span>{m.label}</span></span><span className="nav-module-chevron">{openModules[m.key]?"⌄":"›"}</span>
+            <span className="nav-module-title"><span>{m.label}</span></span><span className="nav-module-chevron">{openModules[m.key]?"⌄":"›"}</span>
           </button>
           {openModules[m.key]&&<div className="nav-module-items">
             {m.items.map(item=>{

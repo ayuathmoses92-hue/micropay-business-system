@@ -806,3 +806,44 @@ body{background:#f5f7fa;color:#172b3a}
 @media(max-width:1000px){.header-left{min-width:auto}.header-search{width:360px}.header-page-title{display:none}.sidebar{width:245px}.content-area{padding:18px 22px}}
 @media(max-width:760px){.app-header{padding:0 12px}.header-search{display:none}.sidebar{position:fixed;left:0;top:64px;z-index:45;box-shadow:8px 0 20px rgba(15,36,56,.16)}.content-area{padding:16px}.sidebar-collapsed .sidebar{width:76px}.profile-summary{display:none}.profile-trigger{min-width:auto}}
 @media(max-width:650px){.app-header{height:60px}.app-body{min-height:calc(100vh - 60px)}.sidebar{top:60px;height:calc(100vh - 60px)}.content-area{padding:14px 12px}.page-breadcrumb{margin-bottom:6px}}
+
+
+/* Classic ERP navigation refinement v4 */
+.nav-module-header {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  color: #6b7280 !important;
+  padding-left: 12px !important;
+  padding-right: 8px !important;
+}
+.nav-module-header:hover,
+.nav-module-header:focus,
+.nav-module-header:focus-visible {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  color: #244f6a !important;
+  outline: none;
+}
+.nav-module-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+}
+.nav-module-icon {
+  display: none !important;
+}
+.nav-module-chevron {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+.nav-module-items {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
