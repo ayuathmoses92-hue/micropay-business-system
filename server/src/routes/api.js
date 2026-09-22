@@ -1,4 +1,3 @@
-import { authorizeLegacyOrPermission } from "../middleware/permissions.js";
 import { Router } from "express";
 import { query, transaction } from "../db.js";
 import { nextNumber } from "../utils/sequence.js";
@@ -7,7 +6,11 @@ import phase4Router from "./phase4.js";
 
 const router = Router();
 router.use(phase4Router);
-const requireRole = (req, res, roles) => authorizeLegacyOrPermission(req,res,roles);
+const roleAllowed = (req, roles) => roles.includes(req.user?.role);
+const requireRole = (req, res, roles) => {
+  if (!roleAllowed(req, roles)) { res.status(403).json({ error: "You do not have permission for this action" }); return false; }
+  return true;
+};
 const audit = async (client, userId, action, entityType, entityId, details={}) => {
   await client.query("INSERT INTO audit_logs(user_id,action,entity_type,entity_id,details) VALUES($1,$2,$3,$4,$5)", [userId||null, action, entityType, entityId||null, JSON.stringify(details)]);
 };
@@ -601,31 +604,17 @@ router.post("/financial-accounts", async (req,res)=>{
   const opening=Number(req.body.opening_balance||0);
   const date=req.body.opening_balance_date||null;
   const notes=String(req.body.notes||"").trim();
-  const currency=String(req.body.currency_code||"USD").trim().toUpperCase();
   if(!name)return res.status(400).json({error:"Account name is required"});
   if(!["CASH","BANK","MOBILE_MONEY"].includes(type))return res.status(400).json({error:"Valid account type is required"});
-  if(!["USD","SSP"].includes(currency))return res.status(400).json({error:"Valid account currency is required"});
   if(!Number.isFinite(opening)||opening<0)return res.status(400).json({error:"Opening balance must be zero or greater"});
   try{
     const result=await transaction(async client=>{
-      // Serialize account-code generation so concurrent account creation cannot produce duplicates.
-      await client.query("SELECT pg_advisory_xact_lock($1)",[72631401]);
-      const nextResult=await client.query(`
-        SELECT COALESCE(MAX(
-          CASE WHEN account_code ~ '^ACC-[0-9]+$'
-               THEN substring(account_code FROM 5)::integer
-               ELSE 0 END
-        ),0)+1 AS next_number
-        FROM financial_accounts
-      `);
-      const nextNumber=Number(nextResult.rows[0]?.next_number||1);
-      if(!Number.isInteger(nextNumber)||nextNumber<1)throw new Error("Unable to generate financial account code");
-      const code=`ACC-${String(nextNumber).padStart(4,"0")}`;
+      const code=(await client.query(`SELECT 'ACC-'||LPAD((COALESCE(MAX(NULLIF(regexp_replace(account_code,'\\D','','g'),'' )::integer),0)+1)::text,4,'0') AS code FROM financial_accounts`)).rows[0].code;
       const r=await client.query(`INSERT INTO financial_accounts
-        (account_code,account_name,account_type,institution_name,account_reference,opening_balance,opening_balance_date,notes,created_by,currency_code)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
-        [code,name,type,institution||null,reference||null,opening,date,notes||null,req.user.id,currency]);
-      await audit(client,req.user.id,"CREATE","FINANCIAL_ACCOUNT",r.rows[0].id,{account_code:code,account_name:name,account_type:type,currency_code:currency,opening_balance:opening});
+        (account_code,account_name,account_type,institution_name,account_reference,opening_balance,opening_balance_date,notes,created_by)
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+        [code,name,type,institution||null,reference||null,opening,date,notes||null,req.user.id]);
+      await audit(client,req.user.id,"CREATE","FINANCIAL_ACCOUNT",r.rows[0].id,{account_code:code,account_name:name,account_type:type,opening_balance:opening});
       return r.rows[0];
     });
     res.status(201).json(result);
@@ -642,17 +631,16 @@ router.patch("/financial-accounts/:id", async (req,res)=>{
   const date=req.body.opening_balance_date||null;
   const active=req.body.active!==false;
   const notes=String(req.body.notes||"").trim();
-  const currency=String(req.body.currency_code||"USD").trim().toUpperCase();
-  if(!name||!["CASH","BANK","MOBILE_MONEY"].includes(type)||!["USD","SSP"].includes(currency)||!Number.isFinite(opening)||opening<0)
+  if(!name||!["CASH","BANK","MOBILE_MONEY"].includes(type)||!Number.isFinite(opening)||opening<0)
     return res.status(400).json({error:"Valid account details are required"});
   try{
     const result=await transaction(async client=>{
       const existing=(await client.query("SELECT * FROM financial_accounts WHERE id=$1 FOR UPDATE",[req.params.id])).rows[0];
       if(!existing)throw new Error("Financial account not found");
       const r=await client.query(`UPDATE financial_accounts SET account_name=$1,account_type=$2,institution_name=$3,
-        account_reference=$4,opening_balance=$5,opening_balance_date=$6,active=$7,notes=$8,currency_code=$9,updated_at=NOW()
-        WHERE id=$10 RETURNING *`,
-        [name,type,institution||null,reference||null,opening,date,active,notes||null,currency,existing.id]);
+        account_reference=$4,opening_balance=$5,opening_balance_date=$6,active=$7,notes=$8,updated_at=NOW()
+        WHERE id=$9 RETURNING *`,
+        [name,type,institution||null,reference||null,opening,date,active,notes||null,existing.id]);
       await audit(client,req.user.id,"EDIT","FINANCIAL_ACCOUNT",existing.id,{account_name:name,account_type:type,active});
       return r.rows[0];
     });
@@ -830,7 +818,17 @@ router.get("/audit-logs", async(req,res)=>{if(!requireRole(req,res,["ADMIN","MAN
 router.get("/documents/payment-voucher/:id.pdf", async(req,res)=>{const voucher=(await query("SELECT * FROM payment_vouchers WHERE id=$1",[req.params.id])).rows[0];if(!voucher)return res.status(404).send("Not found");const pdf=await makePaymentVoucherPdf({voucher});res.setHeader("Content-Type","application/pdf");res.setHeader("Content-Disposition",`inline; filename="${voucher.voucher_number}.pdf"`);res.send(pdf);});
 router.get("/documents/expense/:id.pdf", async(req,res)=>{const expense=(await query("SELECT * FROM expenses WHERE id=$1",[req.params.id])).rows[0];if(!expense)return res.status(404).send("Not found");const pdf=await makeExpenseVoucherPdf({expense});res.setHeader("Content-Type","application/pdf");res.setHeader("Content-Disposition",`inline; filename="${expense.expense_number}.pdf"`);res.send(pdf);});
 router.get("/documents/quotation/:id.pdf", async(req,res)=>{const q=(await query("SELECT q.* FROM quotations q WHERE q.id=$1",[req.params.id])).rows[0];if(!q)return res.status(404).send("Not found");const customer=(await query("SELECT * FROM customers WHERE id=$1",[q.customer_id])).rows[0];const items=(await query("SELECT * FROM quotation_items WHERE quotation_id=$1 ORDER BY id",[req.params.id])).rows;const pdf=await makeQuotationPdf({quotation:q,customer,items});res.setHeader("Content-Type","application/pdf");res.setHeader("Content-Disposition",`inline; filename="${q.number}.pdf"`);res.send(pdf);});
-router.get("/documents/invoice/:id.pdf", async(req,res)=>{const i=(await query("SELECT i.*,c.name customer_name,c.contact_person,c.phone,c.email,c.address FROM invoices i JOIN customers c ON c.id=i.customer_id WHERE i.id=$1",[req.params.id])).rows[0];if(!i)return res.status(404).send("Not found");const items=(await query("SELECT * FROM invoice_items WHERE invoice_id=$1 ORDER BY id",[req.params.id])).rows;const customer={name:i.customer_name,contact_person:i.contact_person,phone:i.phone,email:i.email,address:i.address};const pdf=await makeInvoicePdf({invoice:i,customer,items});res.setHeader("Content-Type","application/pdf");res.setHeader("Content-Disposition",`inline; filename="${i.number}.pdf"`);res.send(pdf);});
+router.get("/documents/invoice/:id.pdf", async(req,res)=>{
+  const i=(await query("SELECT i.*,c.name customer_name,c.contact_person,c.phone,c.email,c.address FROM invoices i JOIN customers c ON c.id=i.customer_id WHERE i.id=$1",[req.params.id])).rows[0];
+  if(!i)return res.status(404).send("Not found");
+  const items=(await query("SELECT * FROM invoice_items WHERE invoice_id=$1 ORDER BY id",[req.params.id])).rows;
+  const customer={name:i.customer_name,contact_person:i.contact_person,phone:i.phone,email:i.email,address:i.address};
+  const bankAccount=(await query(`SELECT account_name,institution_name,account_reference,currency_code FROM financial_accounts WHERE account_type='BANK' AND active=true ORDER BY account_name LIMIT 1`)).rows[0] || null;
+  const pdf=await makeInvoicePdf({invoice:i,customer,items,bankAccount});
+  res.setHeader("Content-Type","application/pdf");
+  res.setHeader("Content-Disposition",`inline; filename="${i.number}.pdf"`);
+  res.send(pdf);
+});
 router.get("/documents/receipt/:id.pdf", async(req,res)=>{const r=(await query(`SELECT p.*,i.number invoice_number,i.total invoice_total,i.paid invoice_paid,i.balance invoice_balance,c.* FROM payments p JOIN invoices i ON i.id=p.invoice_id JOIN customers c ON c.id=i.customer_id WHERE p.id=$1`,[req.params.id])).rows[0];if(!r)return res.status(404).send("Not found");const invoice={number:r.invoice_number,total:r.invoice_total,paid:r.invoice_paid,balance:r.invoice_balance};const pdf=await makeReceiptPdf({payment:r,invoice,customer:r});res.setHeader("Content-Type","application/pdf");res.setHeader("Content-Disposition",`inline; filename="${r.receipt_number}.pdf"`);res.send(pdf);});
 
 export default router;

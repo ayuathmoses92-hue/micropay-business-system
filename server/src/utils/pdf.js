@@ -20,6 +20,56 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const logoPath = path.resolve(__dirname, "../../assets/micropay-logo.png");
 
+
+const ONES = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];
+const TENS = ["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
+
+function numberToWordsUnder1000(n) {
+  n = Math.floor(Number(n) || 0);
+  if (n < 20) return ONES[n];
+  if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? `-${ONES[n % 10]}` : "");
+  return `${ONES[Math.floor(n / 100)]} hundred${n % 100 ? ` and ${numberToWordsUnder1000(n % 100)}` : ""}`;
+}
+
+function integerToWords(n) {
+  n = Math.floor(Number(n) || 0);
+  if (n === 0) return "zero";
+  const scales = [[1e12,"trillion"],[1e9,"billion"],[1e6,"million"],[1e3,"thousand"],[1,"" ]];
+  const parts = [];
+  let remaining = n;
+  for (const [value, name] of scales) {
+    if (remaining >= value) {
+      const group = Math.floor(remaining / value);
+      remaining %= value;
+      const text = numberToWordsUnder1000(group);
+      parts.push(name ? `${text} ${name}` : text);
+    }
+  }
+  return parts.join(" ");
+}
+
+function currencyWords(code) {
+  const c = String(code || "USD").toUpperCase();
+  if (c === "USD") return { major: "US Dollars", minor: "Cents" };
+  if (c === "SSP") return { major: "South Sudanese Pounds", minor: "Piastres" };
+  if (c === "EUR") return { major: "Euros", minor: "Cents" };
+  if (c === "KES") return { major: "Kenyan Shillings", minor: "Cents" };
+  return { major: c, minor: "Cents" };
+}
+
+export function amountInWords(value, currencyCode = "USD") {
+  const amount = Math.max(0, Number(value) || 0);
+  const whole = Math.floor(amount + 0.0000001);
+  const minor = Math.round((amount - whole) * 100);
+  const currency = currencyWords(currencyCode);
+  if (minor === 0) return `${capitalize(integerToWords(whole))} ${currency.major} Only`;
+  return `${capitalize(integerToWords(whole))} ${currency.major} and ${numberToWordsUnder1000(minor)} ${currency.minor} Only`;
+}
+
+function capitalize(value) {
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+}
+
 export function money(value) {
   return Number(value || 0).toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -41,6 +91,8 @@ function collectPdf(doc) {
 }
 
 function drawFooter(doc) {
+  // Approved Micro Pay invoice/quotation footer. Keep the address on its own
+  // centered line and draw the footer last so invoice content cannot cover it.
   const y = footerTop;
   doc.strokeColor(blue).lineWidth(1.2).moveTo(margin, y).lineTo(pageWidth - margin, y).stroke();
   doc.strokeColor(red).lineWidth(2.2).moveTo(margin, y).lineTo(margin + 170, y).stroke();
@@ -213,17 +265,62 @@ export async function makeQuotationPdf({ quotation, customer, items }) {
   return promise;
 }
 
-export async function makeInvoicePdf({ invoice, customer, items }) {
+export async function makeInvoicePdf({ invoice, customer, items, bankAccount }) {
   const { doc, promise } = beginDocument("INVOICE", invoice.number, invoice.invoice_date, { customer: customer?.name });
   drawCustomerBox(doc, customer);
   const y = drawItemsTable(doc, items, 318);
-  drawTotals(doc, [["Subtotal:", invoice.subtotal], ["Discount:", invoice.discount], ["Tax:", invoice.tax], ["TOTAL (USD):", invoice.total], ["PAID:", invoice.paid], ["BALANCE:", invoice.balance]], y + 18);
-  doc.fillColor(navy).font("Helvetica-Bold").fontSize(9).text(`Payment Status: ${invoice.status || "ISSUED"}`, margin, y + 24);
-  if (invoice.notes) {
-    doc.fillColor(navy).font("Helvetica-Bold").fontSize(9).text("Notes:", margin, y + 60);
-    doc.fillColor(dark).font("Helvetica").fontSize(8.5).text(invoice.notes, margin, y + 76, { width: 250, height: 50 });
+  const currencyCode = String(invoice.currency_code || "USD").toUpperCase();
+  const totalsY = y + 18;
+  drawTotals(doc, [["Subtotal:", invoice.subtotal], ["Discount:", invoice.discount], ["Tax:", invoice.tax], [`TOTAL (${currencyCode}):`, invoice.total], [`PAID (${currencyCode}):`, invoice.paid], [`BALANCE (${currencyCode}):`, invoice.balance]], totalsY);
+
+  // Commercial invoice information block. Bank details are pulled from the
+  // active BANK account configured under Cash & Bank.
+  const infoY = totalsY + 150;
+  const words = amountInWords(invoice.total, currencyCode);
+  const wordsW = 300;
+  doc.fillColor(lightBlue).roundedRect(margin, infoY, wordsW, 62, 5).fill();
+  doc.fillColor(navy).font("Helvetica-Bold").fontSize(8.5).text("Amount in Words:", margin + 10, infoY + 9, { width: wordsW - 20 });
+  doc.fillColor(dark).font("Helvetica").fontSize(8.5).text(words, margin + 10, infoY + 25, { width: wordsW - 20, height: 30 });
+
+  const bankY = infoY + 74;
+  const bankH = bankAccount ? 82 : 54;
+  doc.fillColor("#F7F9FA").roundedRect(margin, bankY, contentWidth, bankH, 5).fill();
+  doc.strokeColor(border).lineWidth(0.6).roundedRect(margin, bankY, contentWidth, bankH, 5).stroke();
+  doc.fillColor(navy).font("Helvetica-Bold").fontSize(9).text("BANK ACCOUNT DETAILS", margin + 12, bankY + 10);
+  if (bankAccount) {
+    const fields = [
+      ["Bank / Institution:", bankAccount.institution_name || "N/A"],
+      ["Account Name:", bankAccount.account_name || "N/A"],
+      ["Account / Reference:", bankAccount.account_reference || "N/A"],
+      ["Currency:", bankAccount.currency_code || currencyCode]
+    ];
+    fields.forEach(([label, value], idx) => {
+      const col = idx < 2 ? 0 : 1;
+      const row = idx % 2;
+      const x = margin + 12 + col * 255;
+      const yy = bankY + 30 + row * 22;
+      doc.fillColor(dark).font("Helvetica-Bold").fontSize(7.8).text(label, x, yy, { width: 92, lineBreak: false });
+      doc.font("Helvetica").text(String(value), x + 96, yy, { width: 145, lineBreak: false });
+    });
+  } else {
+    doc.fillColor(dark).font("Helvetica").fontSize(8).text("No active bank account has been configured in Cash & Bank.", margin + 12, bankY + 29);
   }
-  drawSignature(doc, 680);
+
+  // Keep the status/notes and signature clear of the anchored footer.
+  const bottomY = bankY + bankH + 14;
+  doc.fillColor(navy).font("Helvetica-Bold").fontSize(8.5).text(`Payment Status: ${invoice.status || "ISSUED"}`, margin, bottomY, { width: 260, lineBreak: false });
+  if (invoice.notes) {
+    doc.fillColor(navy).font("Helvetica-Bold").fontSize(8.5).text("Notes:", margin, bottomY + 19, { lineBreak: false });
+    doc.fillColor(dark).font("Helvetica").fontSize(7.8).text(invoice.notes, margin, bottomY + 33, { width: 270, height: 28 });
+  }
+
+  // Signature is kept on the right so it does not collide with invoice notes.
+  const sigX = 350;
+  const sigY = Math.min(bottomY + 8, footerTop - 62);
+  doc.fillColor(navy).font("Helvetica-Bold").fontSize(8.5).text("Micro Pay Company Limited", sigX, sigY, { width: 203, align: "right", lineBreak: false });
+  doc.strokeColor(blue).lineWidth(0.8).moveTo(sigX + 55, sigY + 27).lineTo(pageWidth - margin, sigY + 27).stroke();
+  doc.fillColor(dark).font("Helvetica").fontSize(7.5).text("Authorized Signature", sigX + 55, sigY + 34, { width: 148, align: "right", lineBreak: false });
+
   drawFooter(doc);
   doc.end();
   return promise;
