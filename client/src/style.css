@@ -847,3 +847,28 @@ body{background:#f5f7fa;color:#172b3a}
   border: 0 !important;
   box-shadow: none !important;
 }
+
+
+/* Classic ERP navigation v5 - remove module hover wrapper completely */
+.nav-module,
+.nav-module:hover,
+.nav-module:focus-within {
+  background: transparent !important;
+  border-color: transparent !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+}
+.nav-module-header,
+.nav-module-header:hover,
+.nav-module-header:focus,
+.nav-module-header:focus-visible,
+.nav-module-header:active {
+  background: transparent !important;
+  border-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+}
