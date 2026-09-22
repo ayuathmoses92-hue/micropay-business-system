@@ -980,3 +980,45 @@ body{background:#f5f7fa;color:#172b3a}
     font-size: 11px !important;
   }
 }
+
+/* Classic ERP navigation v8 - allow full module names without truncation */
+.nav-module-header {
+  min-height: 40px !important;
+  height: auto !important;
+  align-items: center !important;
+}
+
+.nav-module-title {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  align-items: center !important;
+}
+
+.nav-module-title > span:last-child {
+  display: block !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  line-height: 1.25 !important;
+  padding: 7px 0 !important;
+}
+
+.nav-module-icon {
+  display: none !important;
+}
+
+.nav-module-chevron {
+  flex: 0 0 auto !important;
+  margin-left: 8px !important;
+}
+
+@media (max-width: 1000px) {
+  .nav-module-title > span:last-child {
+    font-size: 11px !important;
+    white-space: normal !important;
+  }
+}
