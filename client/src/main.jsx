@@ -24,27 +24,32 @@ class PageErrorBoundary extends React.Component{constructor(props){super(props);
 
 function Layout({page,setPage,user,onLogout}){
   const [profileOpen,setProfileOpen]=useState(false);
+  const [openModules,setOpenModules]=useState({sales:true,finance:true,cashbank:true,procurement:true});
   const modules=[
-    {key:"sales",icon:"◈",label:"SALES & CUSTOMER MANAGEMENT",items:[
-      ["Customers","customers.view"],["Quotations","quotations.view"],["Invoices","invoices.view"],["Receipts","receipts.view"],["Customer Statements","statements.view"]
+    {key:"sales",label:"SALES & CUSTOMER MANAGEMENT",items:[
+      ["Customers","customers.view","Customers"],["Quotations","quotations.view","Quotations"],["Invoices","invoices.view","Invoices"],["Receipts","receipts.view","Receipts"],["Customer Statements","statements.view","Customer Statements"]
     ]},
-    {key:"finance",icon:"▣",label:"FINANCIAL MANAGEMENT",items:[
-      ["Expenses","expenses.view"],["Payment Vouchers","payment_vouchers.view"],["Reports","reports.view"],["Budget vs Actual","budgets.view"],["Cash & Bank","financial_accounts.view"],["Reconciliation","reconciliation.view"],["Currencies & Rates","currencies.view"],["Bills","supplier_bills.view"],["Financial Periods","periods.view"],["Profitability","profitability.view"]
+    {key:"finance",label:"FINANCIAL MANAGEMENT",items:[
+      ["Expenses","expenses.view","Expenses"],["Payment Vouchers","payment_vouchers.view","Payment Vouchers"],["Reports","reports.view","Reports"],["Budget vs Actual","budgets.view","Budget vs Actual"],
+      ["__GROUP__","financial_accounts.view","Cash & Bank",{group:"cashbank",children:[
+        ["Bank & Cash Accounts","financial_accounts.view","Cash & Bank"],["Bank/Cash Reconciliation","reconciliation.view","Reconciliation"]
+      ]}],
+      ["Currencies & Rates","currencies.view","Currencies & Rates"],["Bills","supplier_bills.view","Bills"],["Financial Periods","periods.view","Financial Periods"],["Profitability","profitability.view","Profitability"]
     ]},
-    {key:"procurement",icon:"◆",label:"PROCUREMENT",items:[
-      ["Suppliers","suppliers.view"],["Purchase Requisitions","procurement.requisitions.view"],["RFQs & Quotes","procurement.rfqs.view"],["Purchase Orders","procurement.purchase_orders.view"],["Goods Receipts","procurement.goods_receipts.view"]
+    {key:"procurement",label:"PROCUREMENT",items:[
+      ["Suppliers","suppliers.view","Suppliers"],["Purchase Requisitions","procurement.requisitions.view","Purchase Requisitions"],["RFQs & Quotes","procurement.rfqs.view","RFQs & Quotes"],["Purchase Orders","procurement.purchase_orders.view","Purchase Orders"],["Goods Receipts","procurement.goods_receipts.view","Goods Receipts"]
     ]}
   ];
-  const visibleModules=modules.map(m=>({...m,items:m.items.filter(([,perm])=>can(user,perm))})).filter(m=>m.items.length);
-  const allNav=["Dashboard",...visibleModules.flatMap(m=>m.items.map(([label])=>label)),...(can(user,"roles.view")||can(user,"users.view")?["Users & Roles"]:[])];
-  const [openModules,setOpenModules]=useState({sales:true,finance:true,procurement:true});
+  const visibleModules=modules.map(m=>({...m,items:m.items.filter(item=>can(user,item[1]))})).filter(m=>m.items.length);
+  const allNav=["Dashboard",...visibleModules.flatMap(m=>m.items.flatMap(item=>item[0]==="__GROUP__"?item[3].children.map(c=>c[2]):[item[2]])),...(can(user,"roles.view")||can(user,"users.view")?["Users & Roles"]:[])];
   useEffect(()=>{if(!allNav.includes(page))setPage(allNav[0]||"Dashboard")},[user?.id,user?.permissions?.join(","),page]);
-  useEffect(()=>{visibleModules.forEach(m=>{if(m.items.some(([label])=>label===page))setOpenModules(v=>({...v,[m.key]:true}))})},[page]);
+  useEffect(()=>{visibleModules.forEach(m=>{m.items.forEach(item=>{if(item[0]==="__GROUP__"){if(item[3].children.some(c=>c[2]===page))setOpenModules(v=>({...v,[item[3].group]:true}));}else if(item[2]===page)setOpenModules(v=>({...v,[m.key]:true}));})})},[page]);
   const go=n=>{setPage(n);setProfileOpen(false)};
   const pageMap={"Users & Roles":"Users"};
+  const toggleModule=k=>setOpenModules(v=>({...v,[k]:!v[k]}));
   return <div className="app-shell">
     <header className="app-header">
-      <div className="header-brand"><img src={logo} alt="Micro Pay" className="header-logo"/><div className="brand-copy"><strong>Micro Pay</strong><span>Business Management System</span></div></div>
+      <div className="header-left"><button className="sidebar-toggle" onClick={()=>document.body.classList.toggle("sidebar-collapsed")} aria-label="Toggle navigation">☰</button><div className="header-search"><span>⌕</span><input placeholder="Search anything..." aria-label="Search"/><kbd>Ctrl + K</kbd></div></div>
       <div className="header-page-title">{page}</div>
       <div className="profile-area">
         <button className="profile-trigger" onClick={()=>setProfileOpen(v=>!v)} aria-expanded={profileOpen}><span className="avatar">{(user.name||"U").trim().charAt(0).toUpperCase()}</span><span className="profile-summary"><strong>{user.name}</strong><small>{user.roles?.map(r=>r.name).join(", ")||ROLE_LABELS[user.role]||user.role}</small></span><span className="profile-chevron">⌄</span></button>
@@ -53,20 +58,36 @@ function Layout({page,setPage,user,onLogout}){
     </header>
     <div className="app-body">
       <aside className="sidebar">
+        <div className="sidebar-brand"><img src={logo} alt="Micro Pay" className="sidebar-logo"/><div><strong>Micro Pay</strong><span>Business Management System</span></div></div>
         <div className="sidebar-label">MAIN MENU</div>
         <button className={`sidebar-link dashboard-link ${page==="Dashboard"?"active":""}`} onClick={()=>go("Dashboard")}><span className="nav-item-icon">⌂</span><span>Dashboard</span></button>
         {visibleModules.map(m=><div className="nav-module" key={m.key}>
-          <button className="nav-module-header" onClick={()=>setOpenModules(v=>({...v,[m.key]:!v[m.key]}))} aria-expanded={!!openModules[m.key]}>
-            <span className="nav-module-title"><span className="nav-module-icon">{m.icon}</span><span>{m.label}</span></span><span className="nav-module-chevron">{openModules[m.key]?"⌃":"⌄"}</span>
+          <button className="nav-module-header" onClick={()=>toggleModule(m.key)} aria-expanded={!!openModules[m.key]}>
+            <span className="nav-module-title"><span className="nav-module-icon">{m.key==="sales"?"♙":m.key==="finance"?"▣":"◇"}</span><span>{m.label}</span></span><span className="nav-module-chevron">{openModules[m.key]?"⌄":"›"}</span>
           </button>
-          {openModules[m.key]&&<div className="nav-module-items">{m.items.map(([label])=><button key={label} className={`sidebar-link sidebar-sub-link ${page===label?"active":""}`} onClick={()=>go(label)}><span>{label}</span></button>)}</div>}
+          {openModules[m.key]&&<div className="nav-module-items">
+            {m.items.map(item=>{
+              if(item[0]==="__GROUP__"){
+                const g=item[3];
+                const childVisible=g.children.filter(c=>can(user,c[1]));
+                if(!childVisible.length)return null;
+                return <div className="nav-submodule" key={g.group}>
+                  <button className={`sidebar-link sidebar-sub-link nav-parent-link ${childVisible.some(c=>c[2]===page)?"active-parent":""}`} onClick={()=>toggleModule(g.group)}><span className="nav-item-icon">▣</span><span>{g.children[0][2].startsWith("Bank")?"Cash & Bank":"Cash & Bank"}</span><span className="nav-chevron">{openModules[g.group]?"⌄":"›"}</span></button>
+                  {openModules[g.group]&&<div className="nav-nested-items">{childVisible.map(c=><button key={c[2]} className={`sidebar-link sidebar-nested-link ${page===c[2]?"active":""}`} onClick={()=>go(c[2])}><span className="nested-line"></span><span>{c[0]}</span></button>)}</div>}
+                </div>
+              }
+              return <button key={item[2]} className={`sidebar-link sidebar-sub-link ${page===item[2]?"active":""}`} onClick={()=>go(item[2])}><span>{item[2]}</span><span className="nav-chevron">›</span></button>
+            })}
+          </div>}
         </div>)}
         {(can(user,"roles.view")||can(user,"users.view"))&&<div className="nav-module admin-module">
           <div className="sidebar-label admin-label">ADMINISTRATION</div>
-          <button className={`sidebar-link sidebar-sub-link admin-nav-link ${page==="Users & Roles"?"active":""}`} onClick={()=>go("Users & Roles")}><span className="nav-item-icon">⚙</span><span>Users & Roles</span></button>
+          <button className={`sidebar-link sidebar-sub-link admin-nav-link ${page==="Users & Roles"?"active":""}`} onClick={()=>go("Users & Roles")}><span className="nav-item-icon">⚙</span><span>Users & Roles</span><span className="nav-chevron">›</span></button>
         </div>}
+        <button className="collapse-menu-button" onClick={()=>document.body.classList.toggle("sidebar-collapsed")}><span>‹</span><span>Collapse Menu</span></button>
       </aside>
       <main className="content-area">
+        <div className="page-breadcrumb"><span>⌂</span><span>Dashboard</span><b>›</b><span>{page}</span></div>
         {pageMap[page]==="Users"?<Users user={user}/>:page==="Dashboard"?<Dashboard/>:page==="Customers"?<Customers user={user}/>:page==="Quotations"?<Quotations user={user}/>:page==="Invoices"?<Invoices user={user}/>:page==="Receipts"?<Receipts user={user}/>:page==="Expenses"?<Expenses user={user}/>:page==="Payment Vouchers"?<PaymentVouchers user={user}/>:page==="Reports"?<Reports user={user}/>:page==="Budget vs Actual"?<BudgetVsActual user={user}/>:page==="Cash & Bank"?<CashBankAccounts user={user}/>:page==="Reconciliation"?<Reconciliation user={user}/>:page==="Currencies & Rates"?<CurrenciesRates user={user}/>:page==="Suppliers"?<Suppliers user={user}/>:page==="Purchase Requisitions"?<PurchaseRequisitions user={user}/>:page==="RFQs & Quotes"?<RFQsQuotes user={user}/>:page==="Purchase Orders"?<PurchaseOrders user={user}/>:page==="Goods Receipts"?<GoodsReceipts user={user}/>:page==="Bills"?<Bills user={user}/>:page==="Customer Statements"?<CustomerStatements user={user}/>:page==="Financial Periods"?<FinancialPeriods user={user}/>:page==="Profitability"?<Profitability user={user}/>:<Dashboard/>}
       </main>
     </div>
