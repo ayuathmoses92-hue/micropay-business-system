@@ -918,3 +918,65 @@ body{background:#f5f7fa;color:#172b3a}
   background: transparent !important;
   box-shadow: none !important;
 }
+
+/* Classic ERP navigation v7 - stronger module section headings */
+.nav-module-header,
+.nav-module-header:hover,
+.nav-module-header:focus,
+.nav-module-header:focus-visible,
+.nav-module-header:active {
+  background: rgba(30, 62, 86, 0.72) !important;
+  color: #b9d8ee !important;
+  min-height: 38px !important;
+  height: 38px !important;
+  padding: 0 11px !important;
+  border-radius: 6px !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+}
+
+.nav-module-title,
+.nav-module-title:hover,
+.nav-module-title:focus,
+.nav-module-title:active {
+  background: transparent !important;
+  color: #b9d8ee !important;
+}
+
+.nav-module-title > span:last-child {
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.075em !important;
+  color: #b9d8ee !important;
+  text-transform: uppercase !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.nav-module-chevron {
+  color: #9bb8cb !important;
+  font-size: 17px !important;
+  background: transparent !important;
+}
+
+.nav-module-header:hover .nav-module-title > span:last-child,
+.nav-module-header:focus .nav-module-title > span:last-child,
+.nav-module-header:focus-visible .nav-module-title > span:last-child {
+  color: #c7e2f4 !important;
+}
+
+/* Keep the section background stable on hover so text is never covered by a new overlay. */
+.nav-module-header:hover,
+.nav-module-header:focus,
+.nav-module-header:focus-visible {
+  background: rgba(30, 62, 86, 0.72) !important;
+}
+
+@media (max-width: 1000px) {
+  .nav-module-title > span:last-child {
+    font-size: 11px !important;
+  }
+}
