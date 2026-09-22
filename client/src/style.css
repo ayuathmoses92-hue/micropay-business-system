@@ -872,3 +872,49 @@ body{background:#f5f7fa;color:#172b3a}
   outline: none !important;
   transform: none !important;
 }
+
+/* Classic ERP navigation v6 - neutral hover states; never place a background over navigation text */
+.nav-module,
+.nav-module:hover,
+.nav-module:focus-within,
+.nav-module:active {
+  background: transparent !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+}
+
+.nav-module-header,
+.nav-module-header:hover,
+.nav-module-header:focus,
+.nav-module-header:focus-visible,
+.nav-module-header:active {
+  background: transparent !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+}
+
+/* Navigation item hover: text-only, no rectangular overlay */
+.sidebar-link:hover,
+.sidebar-sub-link:hover,
+.nav-parent-link:hover,
+.sidebar-nested-link:hover,
+.admin-nav-link:hover {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+  transform: none !important;
+}
+
+.nav-module-title,
+.nav-module-title:hover,
+.nav-module-title:focus,
+.nav-module-title:active {
+  background: transparent !important;
+  box-shadow: none !important;
+}
