@@ -282,8 +282,8 @@ export async function makeInvoicePdf({ invoice, customer, items, bankAccount }) 
   doc.fillColor(navy).font("Helvetica-Bold").fontSize(8.5).text("Amount in Words:", margin + 10, infoY + 9, { width: wordsW - 20 });
   doc.fillColor(dark).font("Helvetica").fontSize(8.5).text(words, margin + 10, infoY + 25, { width: wordsW - 20, height: 30 });
 
-  const bankY = infoY + 74;
-  const bankH = bankAccount ? 82 : 54;
+  const bankY = infoY + 72;
+  const bankH = bankAccount ? 70 : 50;
   doc.fillColor("#F7F9FA").roundedRect(margin, bankY, contentWidth, bankH, 5).fill();
   doc.strokeColor(border).lineWidth(0.6).roundedRect(margin, bankY, contentWidth, bankH, 5).stroke();
   doc.fillColor(navy).font("Helvetica-Bold").fontSize(9).text("BANK ACCOUNT DETAILS", margin + 12, bankY + 10);
@@ -298,7 +298,7 @@ export async function makeInvoicePdf({ invoice, customer, items, bankAccount }) 
       const col = idx < 2 ? 0 : 1;
       const row = idx % 2;
       const x = margin + 12 + col * 255;
-      const yy = bankY + 30 + row * 22;
+      const yy = bankY + 28 + row * 18;
       doc.fillColor(dark).font("Helvetica-Bold").fontSize(7.8).text(label, x, yy, { width: 92, lineBreak: false });
       doc.font("Helvetica").text(String(value), x + 96, yy, { width: 145, lineBreak: false });
     });
@@ -307,7 +307,7 @@ export async function makeInvoicePdf({ invoice, customer, items, bankAccount }) 
   }
 
   // Keep the status/notes and signature clear of the anchored footer.
-  const bottomY = bankY + bankH + 14;
+  const bottomY = bankY + bankH + 20;
   doc.fillColor(navy).font("Helvetica-Bold").fontSize(8.5).text(`Payment Status: ${invoice.status || "ISSUED"}`, margin, bottomY, { width: 260, lineBreak: false });
   if (invoice.notes) {
     doc.fillColor(navy).font("Helvetica-Bold").fontSize(8.5).text("Notes:", margin, bottomY + 19, { lineBreak: false });
