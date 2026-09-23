@@ -24,21 +24,25 @@ class PageErrorBoundary extends React.Component{constructor(props){super(props);
 
 function Layout({page,setPage,user,onLogout}){
   const [profileOpen,setProfileOpen]=useState(false);
-  const items=[
-    ["Dashboard","dashboard.view"],["Customers","customers.view"],["Quotations","quotations.view"],
-    ["Invoices","invoices.view"],["Receipts","receipts.view"],["Expenses","expenses.view"],
-    ["Payment Vouchers","payment_vouchers.view"],["Reports","reports.view"],["Budget vs Actual","budgets.view"],
-    ["Cash & Bank","financial_accounts.view"],["Reconciliation","reconciliation.view"],["Currencies & Rates","currencies.view"],
-    ["Suppliers","suppliers.view"],["Purchase Requisitions","procurement.requisitions.view"],
-    ["RFQs & Quotes","procurement.rfqs.view"],["Purchase Orders","procurement.purchase_orders.view"],
-    ["Goods Receipts","procurement.goods_receipts.view"],["Inventory","inventory.stock.view"],["Bills","supplier_bills.view"],
-    ["Customer Statements","statements.view"],["Financial Periods","periods.view"],["Profitability","profitability.view"]
+  const moduleGroups=[
+    {title:"SALES & CUSTOMER MANAGEMENT",items:[
+      ["Customers","customers.view"],["Quotations","quotations.view"],["Invoices","invoices.view"],["Receipts","receipts.view"],["Customer Statements","statements.view"]
+    ]},
+    {title:"FINANCIAL MANAGEMENT",items:[
+      ["Expenses","expenses.view"],["Payment Vouchers","payment_vouchers.view"],["Reports","reports.view"],["Budget vs Actual","budgets.view"],["Cash & Bank","financial_accounts.view"],["Reconciliation","reconciliation.view"],["Currencies & Rates","currencies.view"],["Bills","supplier_bills.view"],["Financial Periods","periods.view"],["Profitability","profitability.view"]
+    ]},
+    {title:"PROCUREMENT",items:[
+      ["Suppliers","suppliers.view"],["Purchase Requisitions","procurement.requisitions.view"],["RFQs & Quotes","procurement.rfqs.view"],["Purchase Orders","procurement.purchase_orders.view"],["Goods Receipts","procurement.goods_receipts.view"]
+    ]},
+    {title:"INVENTORY & WAREHOUSING",items:[
+      ["Inventory","inventory.stock.view"]
+    ]}
   ];
-  const nav=items.filter(([,perm])=>can(user,perm)).map(([label])=>label);
-  // Inventory is a core ERP module. Keep it visible for administrators even if an older
-  // session/JWT does not yet contain the newly installed inventory permission.
+  const visibleGroups=moduleGroups.map(g=>({...g,items:g.items.filter(([,perm])=>can(user,perm))})).filter(g=>g.items.length);
+  const nav=["Dashboard",...visibleGroups.flatMap(g=>g.items.map(([label])=>label))];
   if(user?.role==="ADMIN" && !nav.includes("Inventory")) nav.push("Inventory");
-  if(can(user,"roles.view")||can(user,"users.view")) nav.push("Users & Roles");
+  const canAdmin=can(user,"roles.view")||can(user,"users.view");
+  if(canAdmin) nav.push("Users & Roles");
   useEffect(()=>{if(!nav.includes(page))setPage(nav[0]||"Dashboard")},[user?.id,user?.permissions?.join(","),page]);
   const go=n=>{setPage(n);setProfileOpen(false)};
   const pageMap={"Users & Roles":"Users"};
@@ -52,7 +56,15 @@ function Layout({page,setPage,user,onLogout}){
       </div>
     </header>
     <div className="app-body">
-      <aside className="sidebar"><div className="sidebar-label">MAIN MENU</div>{nav.filter(n=>n!=="Users & Roles").map(n=><button key={n} className={`sidebar-link ${page===n?"active":""}`} onClick={()=>go(n)}><span>{n}</span></button>)}{(can(user,"roles.view")||can(user,"users.view"))&&<><div className="sidebar-label admin-label">ADMINISTRATION</div><button className={`sidebar-link ${page==="Users & Roles"?"active":""}`} onClick={()=>go("Users & Roles")}>Users & Roles</button></>}</aside>
+      <aside className="sidebar">
+        <div className="sidebar-label main-menu-label">MAIN MENU</div>
+        <button key="Dashboard" className={`sidebar-link ${page==="Dashboard"?"active":""}`} onClick={()=>go("Dashboard")}><span>Dashboard</span></button>
+        {visibleGroups.map(group=><div className="sidebar-module" key={group.title}>
+          <div className="sidebar-label module-label">{group.title}</div>
+          {group.items.map(([label])=><button key={label} className={`sidebar-link ${page===label?"active":""}`} onClick={()=>go(label)}><span>{label}</span></button>)}
+        </div>)}
+        {canAdmin&&<div className="sidebar-module admin-module"><div className="sidebar-label module-label">ADMINISTRATION</div><button className={`sidebar-link ${page==="Users & Roles"?"active":""}`} onClick={()=>go("Users & Roles")}>Users & Roles</button></div>}
+      </aside>
       <main className="content-area">
         {pageMap[page]==="Users"?<Users user={user}/>:page==="Dashboard"?<Dashboard/>:page==="Customers"?<Customers user={user}/>:page==="Quotations"?<Quotations user={user}/>:page==="Invoices"?<Invoices user={user}/>:page==="Receipts"?<Receipts user={user}/>:page==="Expenses"?<Expenses user={user}/>:page==="Payment Vouchers"?<PaymentVouchers user={user}/>:page==="Reports"?<Reports user={user}/>:page==="Budget vs Actual"?<BudgetVsActual user={user}/>:page==="Cash & Bank"?<CashBankAccounts user={user}/>:page==="Reconciliation"?<Reconciliation user={user}/>:page==="Currencies & Rates"?<CurrenciesRates user={user}/>:page==="Suppliers"?<Suppliers user={user}/>:page==="Purchase Requisitions"?<PurchaseRequisitions user={user}/>:page==="RFQs & Quotes"?<RFQsQuotes user={user}/>:page==="Purchase Orders"?<PurchaseOrders user={user}/>:page==="Goods Receipts"?<GoodsReceipts user={user}/>:page==="Inventory"?<InventoryModule user={user}/>:page==="Bills"?<Bills user={user}/>:page==="Customer Statements"?<CustomerStatements user={user}/>:page==="Financial Periods"?<FinancialPeriods user={user}/>:page==="Profitability"?<Profitability user={user}/>:<Dashboard/>}
       </main>
@@ -638,7 +650,7 @@ function InventoryModule({user}){
   const saveDoc=async e=>{e.preventDefault();try{const payload={...f,items:lines};await api(`/inventory/${tab.toLowerCase()}`,{method:"POST",body:JSON.stringify(payload)});reset();load()}catch(e){alert(e.message)}};
   const postDoc=async(id)=>{try{await api(`/inventory/${tab.toLowerCase()}/${id}/post`,{method:"POST",body:"{}"});load()}catch(e){alert(e.message)}};
   const title=tab==="Stock"?"Stock Overview":tab==="Setup"?"Inventory Setup":`Stock ${tab}`;
-  return <><div className="toolbar"><div><h1>Inventory & Warehousing</h1><p className="muted">Items, warehouses, stock movements and inventory control.</p></div>{tab==="Items"||tab==="Warehouses"||tab==="Setup"?<button onClick={()=>{setEditing(null);setF({});setFormOpen(true)}}>+ New {tab==="Items"?"Item":tab==="Warehouses"?"Warehouse":"Category"}</button>:tab!=="Stock"&&<button onClick={()=>{setF({[tab==="Transfers"?"transfer_date":tab==="Receipts"?"receipt_date":tab==="Issues"?"issue_date":"adjustment_date"]:new Date().toISOString().slice(0,10)});setLines([{item_id:"",quantity:"",unit_cost:"0"}]);setFormOpen(true)}}>+ New {tab.slice(0,-1)}</button>}</div>
+  return <><div className="toolbar"><div><h1>Inventory & Warehousing</h1><p className="muted">Items, warehouses, stock movements and inventory control.</p></div>{tab==="Items"||tab==="Warehouses"||tab==="Setup"?<button onClick={()=>{setEditing(null);setF({});setFormOpen(true)}}>+ New {tab==="Items"?"Item":tab==="Warehouses"?"Warehouse":"Category"}</button>:tab!=="Stock"&&<button onClick={()=>{setF({[tab==="Transfers"?"transfer_date":tab==="Receipts"?"receipt_date":tab==="Issues"?"issue_date":"adjustment_date":new Date().toISOString().slice(0,10)});setLines([{item_id:"",quantity:"",unit_cost:"0"}]);setFormOpen(true)}}>+ New {tab.slice(0,-1)}</button>}</div>
     <div className="inventory-tabs">{["Stock","Items","Warehouses","Setup","Receipts","Issues","Transfers","Adjustments"].map(x=><button className={tab===x?"active":""} key={x} onClick={()=>{reset();setTab(x)}}>{x}</button>)}</div>
     {formOpen&&<div className="panel inventory-form"><h2>{editing?`Edit ${editing.name||editing.code||"Record"}`:`New ${tab==="Items"?"Inventory Item":tab==="Warehouses"?"Warehouse":tab==="Setup"?"Category":`Stock ${tab.slice(0,-1)}`}`}</h2>
       {(tab==="Items"||tab==="Warehouses"||tab==="Setup")?<form onSubmit={tab==="Setup"?saveMaster:saveMaster}><div className="form-grid">{tab==="Items"&&<><div><label>SKU *</label><input required value={f.sku||""} onChange={e=>setF({...f,sku:e.target.value})}/></div><div><label>Name *</label><input required value={f.name||""} onChange={e=>setF({...f,name:e.target.value})}/></div><div><label>Category</label><select value={f.category_id||""} onChange={e=>setF({...f,category_id:e.target.value})}><option value="">Select</option>{cats.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></div><div><label>Base Unit *</label><select required value={f.base_uom_id||""} onChange={e=>setF({...f,base_uom_id:e.target.value})}><option value="">Select</option>{uoms.map(x=><option key={x.id} value={x.id}>{x.code} — {x.name}</option>)}</select></div><div><label>Item Type</label><select value={f.item_type||"STOCK"} onChange={e=>setF({...f,item_type:e.target.value})}><option>STOCK</option><option>NON_STOCK</option></select></div><div><label>Standard Cost</label><input type="number" min="0" step="0.0001" value={f.standard_cost||0} onChange={e=>setF({...f,standard_cost:e.target.value})}/></div><div><label>Reorder Level</label><input type="number" min="0" step="0.001" value={f.reorder_level||0} onChange={e=>setF({...f,reorder_level:e.target.value})}/></div><div><label>Reorder Quantity</label><input type="number" min="0" step="0.001" value={f.reorder_quantity||0} onChange={e=>setF({...f,reorder_quantity:e.target.value})}/></div><div className="form-field-full"><label>Description</label><textarea value={f.description||""} onChange={e=>setF({...f,description:e.target.value})}/></div></>}
