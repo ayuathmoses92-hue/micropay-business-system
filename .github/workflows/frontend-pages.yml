@@ -1,4 +1,4 @@
-name: Micro Pay Test Frontend
+name: Micro Pay Frontend
 
 on:
   push:
@@ -37,7 +37,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: client/package.json
 
@@ -55,8 +55,11 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
+          name: micropay-pages
           path: client/dist
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: micropay-pages
