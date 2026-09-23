@@ -24,32 +24,24 @@ class PageErrorBoundary extends React.Component{constructor(props){super(props);
 
 function Layout({page,setPage,user,onLogout}){
   const [profileOpen,setProfileOpen]=useState(false);
-  const [openModules,setOpenModules]=useState({sales:true,finance:true,cashbank:true,procurement:true});
-  const modules=[
-    {key:"sales",label:"SALES & CUSTOMER MANAGEMENT",items:[
-      ["Customers","customers.view","Customers"],["Quotations","quotations.view","Quotations"],["Invoices","invoices.view","Invoices"],["Receipts","receipts.view","Receipts"],["Customer Statements","statements.view","Customer Statements"]
-    ]},
-    {key:"finance",label:"FINANCIAL MANAGEMENT",items:[
-      ["Expenses","expenses.view","Expenses"],["Payment Vouchers","payment_vouchers.view","Payment Vouchers"],["Reports","reports.view","Reports"],["Budget vs Actual","budgets.view","Budget vs Actual"],
-      ["__GROUP__","financial_accounts.view","Cash & Bank",{group:"cashbank",children:[
-        ["Bank & Cash Accounts","financial_accounts.view","Cash & Bank"],["Bank/Cash Reconciliation","reconciliation.view","Reconciliation"]
-      ]}],
-      ["Currencies & Rates","currencies.view","Currencies & Rates"],["Bills","supplier_bills.view","Bills"],["Financial Periods","periods.view","Financial Periods"],["Profitability","profitability.view","Profitability"]
-    ]},
-    {key:"procurement",label:"PROCUREMENT",items:[
-      ["Suppliers","suppliers.view","Suppliers"],["Purchase Requisitions","procurement.requisitions.view","Purchase Requisitions"],["RFQs & Quotes","procurement.rfqs.view","RFQs & Quotes"],["Purchase Orders","procurement.purchase_orders.view","Purchase Orders"],["Goods Receipts","procurement.goods_receipts.view","Goods Receipts"]
-    ]}
+  const items=[
+    ["Dashboard","dashboard.view"],["Customers","customers.view"],["Quotations","quotations.view"],
+    ["Invoices","invoices.view"],["Receipts","receipts.view"],["Expenses","expenses.view"],
+    ["Payment Vouchers","payment_vouchers.view"],["Reports","reports.view"],["Budget vs Actual","budgets.view"],
+    ["Cash & Bank","financial_accounts.view"],["Reconciliation","reconciliation.view"],["Currencies & Rates","currencies.view"],
+    ["Suppliers","suppliers.view"],["Purchase Requisitions","procurement.requisitions.view"],
+    ["RFQs & Quotes","procurement.rfqs.view"],["Purchase Orders","procurement.purchase_orders.view"],
+    ["Goods Receipts","procurement.goods_receipts.view"],["Inventory","inventory.stock.view"],["Bills","supplier_bills.view"],
+    ["Customer Statements","statements.view"],["Financial Periods","periods.view"],["Profitability","profitability.view"]
   ];
-  const visibleModules=modules.map(m=>({...m,items:m.items.filter(item=>can(user,item[1]))})).filter(m=>m.items.length);
-  const allNav=["Dashboard",...visibleModules.flatMap(m=>m.items.flatMap(item=>item[0]==="__GROUP__"?item[3].children.map(c=>c[2]):[item[2]])),...(can(user,"roles.view")||can(user,"users.view")?["Users & Roles"]:[])];
-  useEffect(()=>{if(!allNav.includes(page))setPage(allNav[0]||"Dashboard")},[user?.id,user?.permissions?.join(","),page]);
-  useEffect(()=>{visibleModules.forEach(m=>{m.items.forEach(item=>{if(item[0]==="__GROUP__"){if(item[3].children.some(c=>c[2]===page))setOpenModules(v=>({...v,[item[3].group]:true}));}else if(item[2]===page)setOpenModules(v=>({...v,[m.key]:true}));})})},[page]);
+  const nav=items.filter(([,perm])=>can(user,perm)).map(([label])=>label);
+  if(can(user,"roles.view")||can(user,"users.view")) nav.push("Users & Roles");
+  useEffect(()=>{if(!nav.includes(page))setPage(nav[0]||"Dashboard")},[user?.id,user?.permissions?.join(","),page]);
   const go=n=>{setPage(n);setProfileOpen(false)};
   const pageMap={"Users & Roles":"Users"};
-  const toggleModule=k=>setOpenModules(v=>({...v,[k]:!v[k]}));
   return <div className="app-shell">
     <header className="app-header">
-      <div className="header-left"><button className="sidebar-toggle" onClick={()=>document.body.classList.toggle("sidebar-collapsed")} aria-label="Toggle navigation">☰</button><div className="header-search"><span>⌕</span><input placeholder="Search anything..." aria-label="Search"/><kbd>Ctrl + K</kbd></div></div>
+      <div className="header-brand"><img src={logo} alt="Micro Pay" className="header-logo"/><div className="brand-copy"><strong>Micro Pay</strong><span>Business Management System</span></div></div>
       <div className="header-page-title">{page}</div>
       <div className="profile-area">
         <button className="profile-trigger" onClick={()=>setProfileOpen(v=>!v)} aria-expanded={profileOpen}><span className="avatar">{(user.name||"U").trim().charAt(0).toUpperCase()}</span><span className="profile-summary"><strong>{user.name}</strong><small>{user.roles?.map(r=>r.name).join(", ")||ROLE_LABELS[user.role]||user.role}</small></span><span className="profile-chevron">⌄</span></button>
@@ -57,38 +49,9 @@ function Layout({page,setPage,user,onLogout}){
       </div>
     </header>
     <div className="app-body">
-      <aside className="sidebar">
-        <div className="sidebar-brand"><img src={logo} alt="Micro Pay" className="sidebar-logo"/><div><strong>Micro Pay</strong><span>Business Management System</span></div></div>
-        <div className="sidebar-label">MAIN MENU</div>
-        <button className={`sidebar-link dashboard-link ${page==="Dashboard"?"active":""}`} onClick={()=>go("Dashboard")}><span className="nav-item-icon">⌂</span><span>Dashboard</span></button>
-        {visibleModules.map(m=><div className="nav-module" key={m.key}>
-          <button className="nav-module-header" onClick={()=>toggleModule(m.key)} aria-expanded={!!openModules[m.key]}>
-            <span className="nav-module-title"><span>{m.label}</span></span><span className="nav-module-chevron">{openModules[m.key]?"⌄":"›"}</span>
-          </button>
-          {openModules[m.key]&&<div className="nav-module-items">
-            {m.items.map(item=>{
-              if(item[0]==="__GROUP__"){
-                const g=item[3];
-                const childVisible=g.children.filter(c=>can(user,c[1]));
-                if(!childVisible.length)return null;
-                return <div className="nav-submodule" key={g.group}>
-                  <button className={`sidebar-link sidebar-sub-link nav-parent-link ${childVisible.some(c=>c[2]===page)?"active-parent":""}`} onClick={()=>toggleModule(g.group)}><span className="nav-item-icon">▣</span><span>{g.children[0][2].startsWith("Bank")?"Cash & Bank":"Cash & Bank"}</span><span className="nav-chevron">{openModules[g.group]?"⌄":"›"}</span></button>
-                  {openModules[g.group]&&<div className="nav-nested-items">{childVisible.map(c=><button key={c[2]} className={`sidebar-link sidebar-nested-link ${page===c[2]?"active":""}`} onClick={()=>go(c[2])}><span className="nested-line"></span><span>{c[0]}</span></button>)}</div>}
-                </div>
-              }
-              return <button key={item[2]} className={`sidebar-link sidebar-sub-link ${page===item[2]?"active":""}`} onClick={()=>go(item[2])}><span>{item[2]}</span><span className="nav-chevron">›</span></button>
-            })}
-          </div>}
-        </div>)}
-        {(can(user,"roles.view")||can(user,"users.view"))&&<div className="nav-module admin-module">
-          <div className="sidebar-label admin-label">ADMINISTRATION</div>
-          <button className={`sidebar-link sidebar-sub-link admin-nav-link ${page==="Users & Roles"?"active":""}`} onClick={()=>go("Users & Roles")}><span className="nav-item-icon">⚙</span><span>Users & Roles</span><span className="nav-chevron">›</span></button>
-        </div>}
-        <button className="collapse-menu-button" onClick={()=>document.body.classList.toggle("sidebar-collapsed")}><span>‹</span><span>Collapse Menu</span></button>
-      </aside>
+      <aside className="sidebar"><div className="sidebar-label">MAIN MENU</div>{nav.filter(n=>n!=="Users & Roles").map(n=><button key={n} className={`sidebar-link ${page===n?"active":""}`} onClick={()=>go(n)}><span>{n}</span></button>)}{(can(user,"roles.view")||can(user,"users.view"))&&<><div className="sidebar-label admin-label">ADMINISTRATION</div><button className={`sidebar-link ${page==="Users & Roles"?"active":""}`} onClick={()=>go("Users & Roles")}>Users & Roles</button></>}</aside>
       <main className="content-area">
-        <div className="page-breadcrumb"><span>⌂</span><span>Dashboard</span><b>›</b><span>{page}</span></div>
-        {pageMap[page]==="Users"?<Users user={user}/>:page==="Dashboard"?<Dashboard/>:page==="Customers"?<Customers user={user}/>:page==="Quotations"?<Quotations user={user}/>:page==="Invoices"?<Invoices user={user}/>:page==="Receipts"?<Receipts user={user}/>:page==="Expenses"?<Expenses user={user}/>:page==="Payment Vouchers"?<PaymentVouchers user={user}/>:page==="Reports"?<Reports user={user}/>:page==="Budget vs Actual"?<BudgetVsActual user={user}/>:page==="Cash & Bank"?<CashBankAccounts user={user}/>:page==="Reconciliation"?<Reconciliation user={user}/>:page==="Currencies & Rates"?<CurrenciesRates user={user}/>:page==="Suppliers"?<Suppliers user={user}/>:page==="Purchase Requisitions"?<PurchaseRequisitions user={user}/>:page==="RFQs & Quotes"?<RFQsQuotes user={user}/>:page==="Purchase Orders"?<PurchaseOrders user={user}/>:page==="Goods Receipts"?<GoodsReceipts user={user}/>:page==="Bills"?<Bills user={user}/>:page==="Customer Statements"?<CustomerStatements user={user}/>:page==="Financial Periods"?<FinancialPeriods user={user}/>:page==="Profitability"?<Profitability user={user}/>:<Dashboard/>}
+        {pageMap[page]==="Users"?<Users user={user}/>:page==="Dashboard"?<Dashboard/>:page==="Customers"?<Customers user={user}/>:page==="Quotations"?<Quotations user={user}/>:page==="Invoices"?<Invoices user={user}/>:page==="Receipts"?<Receipts user={user}/>:page==="Expenses"?<Expenses user={user}/>:page==="Payment Vouchers"?<PaymentVouchers user={user}/>:page==="Reports"?<Reports user={user}/>:page==="Budget vs Actual"?<BudgetVsActual user={user}/>:page==="Cash & Bank"?<CashBankAccounts user={user}/>:page==="Reconciliation"?<Reconciliation user={user}/>:page==="Currencies & Rates"?<CurrenciesRates user={user}/>:page==="Suppliers"?<Suppliers user={user}/>:page==="Purchase Requisitions"?<PurchaseRequisitions user={user}/>:page==="RFQs & Quotes"?<RFQsQuotes user={user}/>:page==="Purchase Orders"?<PurchaseOrders user={user}/>:page==="Goods Receipts"?<GoodsReceipts user={user}/>:page==="Inventory"?<InventoryModule user={user}/>:page==="Bills"?<Bills user={user}/>:page==="Customer Statements"?<CustomerStatements user={user}/>:page==="Financial Periods"?<FinancialPeriods user={user}/>:page==="Profitability"?<Profitability user={user}/>:<Dashboard/>}
       </main>
     </div>
   </div>
@@ -656,6 +619,40 @@ function GoodsReceipts({user}){
 }
 
 function Form({fields,values,setValues,onSubmit}){return <div className="panel"><form onSubmit={onSubmit}>{fields.map(k=><input placeholder={k.replace("_"," ")} required={k==="name"} value={values[k]||""} onChange={e=>setValues({...values,[k]:e.target.value})}/>) }<button>Save</button></form></div>}
+function InventoryModule({user}){
+  const [tab,setTab]=useState("Stock");
+  const [items,setItems]=useState([]),[cats,setCats]=useState([]),[uoms,setUoms]=useState([]),[wh,setWh]=useState([]),[balances,setBalances]=useState([]),[tx,setTx]=useState([]);
+  const [docs,setDocs]=useState([]),[formOpen,setFormOpen]=useState(false),[editing,setEditing]=useState(null),[f,setF]=useState({}),[lines,setLines]=useState([{item_id:"",quantity:"",unit_cost:"0"}]);
+  const load=async()=>{try{const [i,c,u,w,b,t]=await Promise.all([api("/inventory/items"),api("/inventory/categories"),api("/inventory/uoms"),api("/inventory/warehouses"),api("/inventory/balances"),api("/inventory/transactions")]);setItems(i);setCats(c);setUoms(u);setWh(w);setBalances(b);setTx(t);if(["Receipts","Issues","Transfers","Adjustments"].includes(tab))setDocs(await api(`/inventory/${tab.toLowerCase()}`))}catch(e){alert(e.message)}};
+  useEffect(()=>{load()},[tab]);
+  const money=v=>Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const addLine=()=>setLines([...lines,{item_id:"",quantity:"",unit_cost:"0"}]);
+  const updateLine=(i,k,v)=>setLines(lines.map((x,n)=>n===i?{...x,[k]:v}:x));
+  const removeLine=i=>setLines(lines.filter((_,n)=>n!==i));
+  const reset=()=>{setFormOpen(false);setEditing(null);setF({});setLines([{item_id:"",quantity:"",unit_cost:"0"}])};
+  const saveMaster=async(e)=>{e.preventDefault();try{if(tab==="Items")await api(editing?`/inventory/items/${editing.id}`:"/inventory/items",{method:editing?"PATCH":"POST",body:JSON.stringify(f)});else if(tab==="Warehouses")await api(editing?`/inventory/warehouses/${editing.id}`:"/inventory/warehouses",{method:editing?"PATCH":"POST",body:JSON.stringify(f)});else if(tab==="Setup")await api(editing?`/inventory/categories/${editing.id}`:"/inventory/categories",{method:editing?"PATCH":"POST",body:JSON.stringify(f)});reset();load()}catch(e){alert(e.message)}};
+  const saveUom=async()=>{try{await api("/inventory/uoms",{method:"POST",body:JSON.stringify(f)});setF({});load()}catch(e){alert(e.message)}};
+  const saveDoc=async e=>{e.preventDefault();try{const payload={...f,items:lines};await api(`/inventory/${tab.toLowerCase()}`,{method:"POST",body:JSON.stringify(payload)});reset();load()}catch(e){alert(e.message)}};
+  const postDoc=async(id)=>{try{await api(`/inventory/${tab.toLowerCase()}/${id}/post`,{method:"POST",body:"{}"});load()}catch(e){alert(e.message)}};
+  const title=tab==="Stock"?"Stock Overview":tab==="Setup"?"Inventory Setup":`Stock ${tab}`;
+  return <><div className="toolbar"><div><h1>Inventory & Warehousing</h1><p className="muted">Items, warehouses, stock movements and inventory control.</p></div>{tab==="Items"||tab==="Warehouses"||tab==="Setup"?<button onClick={()=>{setEditing(null);setF({});setFormOpen(true)}}>+ New {tab==="Items"?"Item":tab==="Warehouses"?"Warehouse":"Category"}</button>:tab!=="Stock"&&<button onClick={()=>{setF({[tab==="Transfers"?"transfer_date":tab==="Receipts"?"receipt_date":tab==="Issues"?"issue_date":"adjustment_date":new Date().toISOString().slice(0,10)});setLines([{item_id:"",quantity:"",unit_cost:"0"}]);setFormOpen(true)}}>+ New {tab.slice(0,-1)}</button>}</div>
+    <div className="inventory-tabs">{["Stock","Items","Warehouses","Setup","Receipts","Issues","Transfers","Adjustments"].map(x=><button className={tab===x?"active":""} key={x} onClick={()=>{reset();setTab(x)}}>{x}</button>)}</div>
+    {formOpen&&<div className="panel inventory-form"><h2>{editing?`Edit ${editing.name||editing.code||"Record"}`:`New ${tab==="Items"?"Inventory Item":tab==="Warehouses"?"Warehouse":tab==="Setup"?"Category":`Stock ${tab.slice(0,-1)}`}`}</h2>
+      {(tab==="Items"||tab==="Warehouses"||tab==="Setup")?<form onSubmit={tab==="Setup"?saveMaster:saveMaster}><div className="form-grid">{tab==="Items"&&<><div><label>SKU *</label><input required value={f.sku||""} onChange={e=>setF({...f,sku:e.target.value})}/></div><div><label>Name *</label><input required value={f.name||""} onChange={e=>setF({...f,name:e.target.value})}/></div><div><label>Category</label><select value={f.category_id||""} onChange={e=>setF({...f,category_id:e.target.value})}><option value="">Select</option>{cats.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></div><div><label>Base Unit *</label><select required value={f.base_uom_id||""} onChange={e=>setF({...f,base_uom_id:e.target.value})}><option value="">Select</option>{uoms.map(x=><option key={x.id} value={x.id}>{x.code} — {x.name}</option>)}</select></div><div><label>Item Type</label><select value={f.item_type||"STOCK"} onChange={e=>setF({...f,item_type:e.target.value})}><option>STOCK</option><option>NON_STOCK</option></select></div><div><label>Standard Cost</label><input type="number" min="0" step="0.0001" value={f.standard_cost||0} onChange={e=>setF({...f,standard_cost:e.target.value})}/></div><div><label>Reorder Level</label><input type="number" min="0" step="0.001" value={f.reorder_level||0} onChange={e=>setF({...f,reorder_level:e.target.value})}/></div><div><label>Reorder Quantity</label><input type="number" min="0" step="0.001" value={f.reorder_quantity||0} onChange={e=>setF({...f,reorder_quantity:e.target.value})}/></div><div className="form-field-full"><label>Description</label><textarea value={f.description||""} onChange={e=>setF({...f,description:e.target.value})}/></div></>}
+      {tab==="Warehouses"&&<><div><label>Code *</label><input required value={f.code||""} onChange={e=>setF({...f,code:e.target.value})}/></div><div><label>Name *</label><input required value={f.name||""} onChange={e=>setF({...f,name:e.target.value})}/></div><div><label>Location</label><input value={f.location||""} onChange={e=>setF({...f,location:e.target.value})}/></div></>}
+      {tab==="Setup"&&<><div><label>Category Code *</label><input required value={f.code||""} onChange={e=>setF({...f,code:e.target.value})}/></div><div><label>Category Name *</label><input required value={f.name||""} onChange={e=>setF({...f,name:e.target.value})}/></div><div className="form-field-full"><label>Description</label><textarea value={f.description||""} onChange={e=>setF({...f,description:e.target.value})}/></div></>}</div><div className="form-actions"><button>{editing?"Save Changes":"Create"}</button><button type="button" onClick={reset}>Cancel</button></div></form>:<form onSubmit={saveDoc}><div className="form-grid"><div><label>Date *</label><input type="date" required value={f[tab==="Transfers"?"transfer_date":tab==="Receipts"?"receipt_date":tab==="Issues"?"issue_date":"adjustment_date"]||""} onChange={e=>setF({...f,[tab==="Transfers"?"transfer_date":tab==="Receipts"?"receipt_date":tab==="Issues"?"issue_date":"adjustment_date"]:e.target.value})}/></div>{tab!=="Transfers"&&<div><label>Warehouse *</label><select required value={f.warehouse_id||""} onChange={e=>setF({...f,warehouse_id:e.target.value})}><option value="">Select warehouse</option>{wh.filter(x=>x.active).map(x=><option key={x.id} value={x.id}>{x.code} — {x.name}</option>)}</select></div>}{tab==="Transfers"&&<><div><label>From Warehouse *</label><select required value={f.from_warehouse_id||""} onChange={e=>setF({...f,from_warehouse_id:e.target.value})}><option value="">Select</option>{wh.filter(x=>x.active).map(x=><option key={x.id} value={x.id}>{x.code} — {x.name}</option>)}</select></div><div><label>To Warehouse *</label><select required value={f.to_warehouse_id||""} onChange={e=>setF({...f,to_warehouse_id:e.target.value})}><option value="">Select</option>{wh.filter(x=>x.active).map(x=><option key={x.id} value={x.id}>{x.code} — {x.name}</option>)}</select></div></>}{tab==="Issues"&&<><div><label>Issued To</label><input value={f.issued_to||""} onChange={e=>setF({...f,issued_to:e.target.value})}/></div><div><label>Purpose *</label><input required value={f.purpose||""} onChange={e=>setF({...f,purpose:e.target.value})}/></div></>}{tab==="Adjustments"&&<div><label>Reason *</label><input required value={f.reason||""} onChange={e=>setF({...f,reason:e.target.value})}/></div>}<div className="form-field-full"><label>Notes</label><textarea value={f.notes||""} onChange={e=>setF({...f,notes:e.target.value})}/></div></div><div className="inventory-lines"><div className="section-title"><h3>Items</h3><button type="button" onClick={addLine}>+ Add Line</button></div>{lines.map((x,i)=><div className="inventory-line" key={i}><select required value={x.item_id} onChange={e=>updateLine(i,"item_id",e.target.value)}><option value="">Select item</option>{items.filter(z=>z.active).map(z=><option key={z.id} value={z.id}>{z.sku} — {z.name}</option>)}</select><input required type="number" min="0.001" step="0.001" placeholder={tab==="Adjustments"?"Delta":"Quantity"} value={tab==="Adjustments"?x.quantity_delta||"":x.quantity||""} onChange={e=>updateLine(i,tab==="Adjustments"?"quantity_delta":"quantity",e.target.value)}/><input type="number" min="0" step="0.0001" placeholder="Unit cost" value={x.unit_cost} onChange={e=>updateLine(i,"unit_cost",e.target.value)}/>{lines.length>1&&<button type="button" onClick={()=>removeLine(i)}>Remove</button>}</div>)}</div><div className="form-actions"><button>Create Draft</button><button type="button" onClick={reset}>Cancel</button></div></form>}
+    </div>}
+    <div className="panel"><div className="section-title"><h2>{title}</h2>{tab==="Stock"&&<span>{balances.length} item/warehouse balances</span>}</div>
+      {tab==="Stock"?<><table><thead><tr><th>SKU</th><th>Item</th><th>Warehouse</th><th>On Hand</th><th>Reserved</th><th>Available</th><th>Avg Cost</th></tr></thead><tbody>{balances.map(r=><tr key={r.id}><td>{r.sku}</td><td>{r.item_name}</td><td>{r.warehouse_name}</td><td>{money(r.quantity_on_hand)}</td><td>{money(r.quantity_reserved)}</td><td>{money(Number(r.quantity_on_hand)-Number(r.quantity_reserved))}</td><td>{money(r.average_unit_cost)}</td></tr>)}</tbody></table></>:
+      tab==="Items"?<table><thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>UOM</th><th>Cost</th><th>Status</th><th></th></tr></thead><tbody>{items.map(r=><tr key={r.id}><td>{r.sku}</td><td>{r.name}</td><td>{r.category_name||"—"}</td><td>{r.uom_code}</td><td>{money(r.standard_cost)}</td><td>{r.active?"Active":"Inactive"}</td><td><button onClick={()=>{setEditing(r);setF(r);setFormOpen(true)}}>Edit</button></td></tr>)}</tbody></table>:
+      tab==="Warehouses"?<table><thead><tr><th>Code</th><th>Name</th><th>Location</th><th>Manager</th><th>Status</th><th></th></tr></thead><tbody>{wh.map(r=><tr key={r.id}><td>{r.code}</td><td>{r.name}</td><td>{r.location||"—"}</td><td>{r.manager_name||"—"}</td><td>{r.active?"Active":"Inactive"}</td><td><button onClick={()=>{setEditing(r);setF(r);setFormOpen(true)}}>Edit</button></td></tr>)}</tbody></table>:
+      tab==="Setup"?<div className="inventory-setup-grid"><section><div className="section-title"><h3>Categories</h3></div><table><thead><tr><th>Code</th><th>Name</th><th>Status</th></tr></thead><tbody>{cats.map(r=><tr key={r.id}><td>{r.code}</td><td>{r.name}</td><td>{r.active?"Active":"Inactive"}</td></tr>)}</tbody></table></section><section><div className="section-title"><h3>Units of Measure</h3><button onClick={()=>{setEditing(null);setF({code:"",name:"",decimal_places:0});setFormOpen("uom")}}>+ New UOM</button></div><table><thead><tr><th>Code</th><th>Name</th><th>Decimals</th></tr></thead><tbody>{uoms.map(r=><tr key={r.id}><td>{r.code}</td><td>{r.name}</td><td>{r.decimal_places}</td></tr>)}</tbody></table></section></div>:
+      <table><thead><tr><th>Number</th><th>Warehouse</th><th>Status</th><th>Quantity</th><th>Created</th><th></th></tr></thead><tbody>{docs.map(r=><tr key={r.id}><td>{r.number}</td><td>{r.warehouse_name||r.from_warehouse_name+" → "+r.to_warehouse_name}</td><td>{r.status}</td><td>{money(r.total_quantity)}</td><td>{new Date(r.created_at).toLocaleDateString()}</td><td>{r.status==="DRAFT"&&<button onClick={()=>postDoc(r.id)}>Post</button>}</td></tr>)}</tbody></table>}
+    </div>
+    {formOpen==="uom"&&<div className="panel"><h2>New Unit of Measure</h2><div className="form-grid"><div><label>Code</label><input value={f.code||""} onChange={e=>setF({...f,code:e.target.value})}/></div><div><label>Name</label><input value={f.name||""} onChange={e=>setF({...f,name:e.target.value})}/></div><div><label>Decimal Places</label><input type="number" min="0" max="6" value={f.decimal_places||0} onChange={e=>setF({...f,decimal_places:e.target.value})}/></div></div><div className="form-actions"><button onClick={saveUom}>Create UOM</button><button onClick={reset}>Cancel</button></div></div>}
+  </>;
+}
+
 function Table({cols,rows,actions}){
   const cellValue=(r,c)=>{
     const value=r?.[c];

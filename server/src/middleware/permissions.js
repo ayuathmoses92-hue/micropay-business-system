@@ -26,6 +26,21 @@ export function permissionForRequest(req) {
   ];
   for (const [rx, code] of exact) if (rx.test(p)) return code;
 
+  const inventoryMap = [
+    [/^\/inventory\/items/, `inventory.items.${action}`],
+    [/^\/inventory\/categories/, `inventory.categories.${action === "create" || action === "edit" ? "manage" : action}`],
+    [/^\/inventory\/warehouses/, `inventory.warehouses.${action}`],
+    [/^\/inventory\/uoms/, `inventory.categories.${action === "create" || action === "edit" ? "manage" : action}`],
+    [/^\/inventory\/item-warehouses/, `inventory.items.${action === "create" || action === "edit" ? "edit" : action}`],
+    [/^\/inventory\/balances/, "inventory.stock.view"],
+    [/^\/inventory\/transactions/, "inventory.stock.view"],
+    [/^\/inventory\/receipts(?:\/[^/]+\/post)?/, `inventory.receipts.${action}`],
+    [/^\/inventory\/issues(?:\/[^/]+\/post)?/, `inventory.issues.${action}`],
+    [/^\/inventory\/transfers(?:\/[^/]+\/post)?/, `inventory.transfers.${action}`],
+    [/^\/inventory\/adjustments(?:\/[^/]+\/post)?/, `inventory.adjustments.${action}`],
+  ];
+  for (const [rx, code] of inventoryMap) if (rx.test(p)) return code;
+
   const map = [
     [/^\/customers/, `customers.${action}`],
     [/^\/quotations/, `quotations.${action}`],

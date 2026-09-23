@@ -7,6 +7,7 @@ import { authenticate } from "./middleware/auth.js";
 import { authorizeRequest } from "./middleware/permissions.js";
 import { securityHeaders, authRateLimit } from "./middleware/security.js";
 import procurement from "./routes/procurement.js";
+import inventory from "./routes/inventory.js";
 
 dotenv.config();
 const app = express();
@@ -44,6 +45,7 @@ app.get("/api/health", (_, res) =>
 app.use("/api/auth", authRateLimit, auth);
 app.use("/api", authenticate, authorizeRequest, api);
 app.use("/api", authenticate, authorizeRequest, procurement);
+app.use("/api", authenticate, authorizeRequest, inventory);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
