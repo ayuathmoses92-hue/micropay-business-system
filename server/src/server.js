@@ -9,6 +9,7 @@ import { securityHeaders, authRateLimit } from "./middleware/security.js";
 import procurement from "./routes/procurement.js";
 import inventory from "./routes/inventory.js";
 import hr from "./routes/hr.js";
+import hrExtended from "./routes/hr-extended.js";
 
 dotenv.config();
 const app = express();
@@ -48,6 +49,7 @@ app.use("/api", authenticate, authorizeRequest, api);
 app.use("/api", authenticate, authorizeRequest, procurement);
 app.use("/api", authenticate, authorizeRequest, inventory);
 app.use("/api", authenticate, authorizeRequest, hr);
+app.use("/api", authenticate, authorizeRequest, hrExtended);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

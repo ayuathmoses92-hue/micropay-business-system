@@ -425,3 +425,6 @@ body { overflow: hidden; }
     grid-column:auto;
   }
 }
+
+/* Complete HR module */
+.hr-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.hr-report-grid .panel{min-width:0}.hr-form-panel .form-grid>div{min-width:0}.hr-form-panel input[type="checkbox"]{width:auto!important}.hr-form-panel .form-actions{grid-column:1/-1}@media(max-width:900px){.hr-report-grid{grid-template-columns:1fr}}
