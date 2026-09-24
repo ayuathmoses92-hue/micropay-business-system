@@ -348,240 +348,80 @@ body { overflow: hidden; }
   }
 }
 
-/* Customer Add/Edit form: scoped layout */
-.customer-form {
-  display: block !important;
+
+/* =========================================================
+   HUMAN RESOURCES MODULE — responsive form layout
+   Keeps HR fields aligned and prevents input/select overlap.
+   ========================================================= */
+.hr-form-panel{
+  overflow:visible;
 }
-
-.customer-form .form-grid {
-  display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px 20px !important;
-  width: 100%;
-  min-width: 0;
-  margin-bottom: 16px;
+.hr-form-panel > h2{
+  margin:0 0 18px;
 }
-
-.customer-form .form-field {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.hr-form-panel .hr-form{
+  display:block !important;
 }
-
-.customer-form .form-field-full {
-  grid-column: 1 / -1;
+.hr-form-panel .form-grid{
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:16px 20px !important;
+  align-items:start;
 }
-
-.customer-form .form-field label {
-  display: block;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.3;
-  color: #52636d;
+.hr-form-panel .form-grid > div{
+  min-width:0;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
 }
-
-.customer-form .form-field input,
-.customer-form .form-field textarea {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-.customer-form .form-field textarea {
-  min-height: 82px;
-  resize: vertical;
-}
-
-.customer-form .form-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.customer-form .form-actions button {
-  margin: 0;
-}
-
-@media (max-width: 760px) {
-  .customer-form .form-grid {
-    grid-template-columns: 1fr;
-    gap: 14px !important;
-  }
-
-  .customer-form .form-field-full {
-    grid-column: auto;
-  }
-}
-
-
-/* Profitability date filter: explicit isolated layout to prevent global form styles from overlapping fields. */
-.profitability-filter-panel .profitability-date-grid {
-  display: grid !important;
-  grid-template-columns: minmax(220px, 280px) minmax(220px, 280px) auto !important;
-  column-gap: 24px !important;
-  row-gap: 16px !important;
-  align-items: end !important;
-  width: 100% !important;
-}
-
-.profitability-filter-panel .profitability-date-field {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: stretch !important;
-  gap: 7px !important;
-  min-width: 0 !important;
-  width: 100% !important;
-}
-
-.profitability-filter-panel .profitability-date-field label {
-  display: block !important;
-  position: static !important;
-  width: auto !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  font-weight: 600 !important;
-  line-height: 1.25 !important;
-  white-space: nowrap !important;
-}
-
-.profitability-filter-panel .profitability-date-field input[type="date"] {
-  display: block !important;
-  position: static !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  height: 40px !important;
-  box-sizing: border-box !important;
-  margin: 0 !important;
-  padding: 8px 10px !important;
-}
-
-.profitability-filter-panel .profitability-date-action {
-  display: flex !important;
-  align-items: flex-end !important;
-  min-height: 68px !important;
-}
-
-.profitability-filter-panel .profitability-date-action button {
-  margin: 0 !important;
-  white-space: nowrap !important;
-}
-
-@media (max-width: 850px) {
-  .profitability-filter-panel .profitability-date-grid {
-    grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) !important;
-  }
-
-  .profitability-filter-panel .profitability-date-action {
-    grid-column: 1 / -1 !important;
-    min-height: auto !important;
-  }
-}
-
-@media (max-width: 560px) {
-  .profitability-filter-panel .profitability-date-grid {
-    grid-template-columns: 1fr !important;
-  }
-
-  .profitability-filter-panel .profitability-date-action {
-    grid-column: auto !important;
-  }
-}
-
-/* Procurement module */
-.procurement-form .form-grid > div > label,
-.procurement-form .form-grid > .form-field-full > label {
+.hr-form-panel .form-grid label{
   display:block;
-  margin-bottom:6px;
-  font-weight:600;
+  margin:0;
+  font-size:12px;
+  line-height:1.35;
+  font-weight:700;
+  color:#52636d;
 }
-.procurement-lines {
-  margin-top:18px;
-  padding:16px;
-  background:#f8fafc;
+.hr-form-panel .form-grid input,
+.hr-form-panel .form-grid select,
+.hr-form-panel .form-grid textarea{
+  display:block;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
+  min-height:40px;
+  margin:0 !important;
+  box-sizing:border-box !important;
 }
-.procurement-lines .section-title {
+.hr-form-panel .form-grid textarea{
+  min-height:82px;
+  resize:vertical;
+}
+.hr-form-panel .form-field-full{
+  grid-column:1 / -1;
+}
+.hr-form-panel .form-actions{
   display:flex;
   align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:12px;
-}
-.procurement-lines .section-title h3 { margin:0; }
-.procurement-line {
-  display:grid;
-  grid-template-columns:minmax(180px,2fr) minmax(90px,.7fr) minmax(90px,.7fr) minmax(120px,1fr) auto;
   gap:10px;
-  align-items:center;
-  margin-bottom:10px;
+  flex-wrap:wrap;
+  margin-top:18px;
 }
-.procurement-line input,
-.procurement-line select { min-width:0; width:100%; box-sizing:border-box; }
-@media (max-width:900px) {
-  .procurement-line { grid-template-columns:1fr 1fr; }
-  .procurement-line input:first-child { grid-column:1/-1; }
-}
-@media (max-width:560px) {
-  .procurement-line { grid-template-columns:1fr; }
-  .procurement-line input:first-child { grid-column:auto; }
+.hr-form-panel .form-actions button{
+  margin:0;
 }
 
-/* ERP-wide Roles & Permissions UI */
-.admin-tabs{display:flex;gap:8px;margin:0 0 16px;border-bottom:1px solid #dce4e9;padding-bottom:8px}
-.admin-tabs button{background:#eef3f6;color:#244F6A;border:1px solid #d5e0e6;margin:0}
-.admin-tabs button.active{background:#2F6688;color:#fff}
-.role-admin-form form{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px 18px!important}
-.role-admin-form form>div{min-width:0}
-.role-admin-form form>div>label,.role-checkbox-section>label{display:block;font-size:12px;font-weight:700;color:#52636d;margin-bottom:6px}
-.role-admin-form input,.role-admin-form select,.role-admin-form textarea{width:100%;box-sizing:border-box}
-.role-admin-form .form-field-full{grid-column:1/-1}
-.role-checkbox-section{grid-column:1/-1}
-.role-checkboxes{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:8px}
-.check-row{display:flex!important;align-items:center;gap:8px;padding:9px 10px;border:1px solid #dce4e9;border-radius:6px;background:#fafcfd;cursor:pointer}
-.check-row input{width:auto!important;flex:0 0 auto}
-.check-row span{display:flex;flex-direction:column;gap:2px;min-width:0}
-.check-row small{color:#7a8992;font-size:10px}
-.permission-grid{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-.permission-group{border:1px solid #dce4e9;border-radius:8px;padding:12px;background:#fafcfd}
-.permission-group h3{margin:0 0 10px;color:#244F6A;font-size:14px}
-.permission-group .check-row{margin:6px 0;background:#fff}
-.role-chip-list{display:flex;flex-wrap:wrap;gap:4px;margin-right:6px;vertical-align:middle}
-.role-chip{display:inline-block;padding:3px 7px;border-radius:999px;background:#e9f1f5;color:#2F6688;font-size:10px;font-weight:700}
-@media(max-width:850px){.role-admin-form form{grid-template-columns:1fr!important}.role-admin-form .form-field-full{grid-column:auto}.permission-grid{grid-template-columns:1fr}.role-checkboxes{grid-template-columns:1fr 1fr}}
-@media(max-width:560px){.role-checkboxes{grid-template-columns:1fr}.admin-tabs{overflow:auto}}
-
-/* Purchase Requisition UI v2 */
-.procurement-form{display:block!important}
-.procurement-form form{display:block!important;width:100%}
-.procurement-form .form-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px 18px!important;width:100%!important;margin-bottom:18px!important}
-.procurement-form .form-grid>div{min-width:0}
-.procurement-form .form-grid>.form-field-full{grid-column:1/-1!important}
-.procurement-form .form-grid>div>label{display:block!important;margin:0 0 6px!important;font-size:12px!important;font-weight:700!important;color:#52636d!important}
-.procurement-form .form-grid input,.procurement-form .form-grid select,.procurement-form .form-grid textarea{width:100%!important;min-width:0!important;box-sizing:border-box!important}
-.procurement-form .form-grid textarea{min-height:78px;resize:vertical}
-.procurement-lines{margin-top:18px!important;padding:18px!important;background:#f8fafc!important;border:1px solid #dce4e9!important;width:100%!important;box-sizing:border-box!important;overflow:visible!important}
-.procurement-lines .section-title{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:16px!important;margin-bottom:14px!important}
-.procurement-lines .section-title h3{margin:0 0 4px!important}
-.procurement-line{display:grid!important;grid-template-columns:minmax(220px,2.2fr) minmax(110px,.8fr) minmax(100px,.8fr) minmax(150px,1fr) 82px!important;gap:12px!important;align-items:end!important;margin-bottom:12px!important;padding:14px!important;border:1px solid #d9e1e8!important;border-radius:8px!important;background:#fff!important}
-.procurement-line input{width:100%!important;min-width:0!important;height:40px!important;box-sizing:border-box!important;padding:8px 10px!important}
-.procurement-line input[type=number]{text-align:right}
-.procurement-line .danger{height:40px!important;white-space:nowrap!important;margin:0!important}
-.procurement-form .form-actions{display:flex!important;align-items:center!important;gap:8px!important;margin-top:16px!important}
-.procurement-form .form-actions button{margin:0!important}
-@media(max-width:1100px){.procurement-line{grid-template-columns:repeat(2,minmax(0,1fr))!important}.procurement-line input:first-child{grid-column:1/-1!important}}
-@media(max-width:760px){.procurement-form .form-grid{grid-template-columns:1fr!important}.procurement-form .form-grid>.form-field-full{grid-column:auto!important}.procurement-line{grid-template-columns:1fr!important}.procurement-line input:first-child{grid-column:auto!important}}
-
-/* Module 03 - Inventory & Warehousing */
-.inventory-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}.inventory-tabs button{border:1px solid #d8deea;background:#fff;color:#344054;padding:9px 14px;border-radius:7px;cursor:pointer}.inventory-tabs button.active{background:#172554;color:#fff;border-color:#172554}.inventory-form{margin-bottom:18px}.inventory-lines{margin-top:18px;border-top:1px solid #e5e7eb;padding-top:14px}.inventory-line{display:grid;grid-template-columns:minmax(240px,2fr) 1fr 1fr auto;gap:10px;margin-bottom:10px}.inventory-line select,.inventory-line input{min-width:0}.inventory-setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.inventory-setup-grid section{min-width:0}.inventory-setup-grid .section-title button{font-size:12px;padding:6px 10px}@media(max-width:850px){.inventory-setup-grid{grid-template-columns:1fr}.inventory-line{grid-template-columns:1fr 1fr}.inventory-line button{grid-column:1/-1;justify-self:start}}
-
-/* ERP module-grouped sidebar navigation */
-.sidebar-module{margin-top:14px}
-.sidebar-module:first-of-type{margin-top:10px}
-.sidebar-label.main-menu-label{margin-bottom:4px}
-.sidebar-label.module-label{margin-top:0;padding:8px 11px 6px;font-size:10px;font-weight:800;letter-spacing:.07em;color:#8a979e;white-space:nowrap}
-.sidebar-module .sidebar-link{margin:1px 0}
-.sidebar-module.admin-module{margin-top:18px;padding-top:4px;border-top:1px solid #eef1f3}
-@media(max-width:900px){.sidebar{width:215px}.sidebar-label.module-label{white-space:normal;line-height:1.25}}
+@media(max-width:1100px){
+  .hr-form-panel .form-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+@media(max-width:700px){
+  .hr-form-panel .form-grid{
+    grid-template-columns:1fr;
+  }
+  .hr-form-panel .form-field-full{
+    grid-column:auto;
+  }
+}
