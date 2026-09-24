@@ -41,12 +41,29 @@ function Layout({page,setPage,user,onLogout}){
       ["HR Dashboard","hr.employees.view"],["Employees","hr.employees.view"],["Departments","hr.departments.view"],["Positions","hr.positions.view"],["Employment Contracts","hr.contracts.view"]
     ]}
   ];
-  const visibleGroups=moduleGroups.map(g=>({...g,items:g.items.filter(([,perm])=>can(user,perm))})).filter(g=>g.items.length);
-  const nav=["Dashboard",...visibleGroups.flatMap(g=>g.items.map(([label])=>label))];
-  if(user?.role==="ADMIN" && !nav.includes("Inventory")) nav.push("Inventory");
-  if(user?.role==="ADMIN"){["HR Dashboard","Employees","Departments","Positions","Employment Contracts"].forEach(x=>{if(!nav.includes(x))nav.push(x)})}
-  const canAdmin=can(user,"roles.view")||can(user,"users.view");
-  useEffect(()=>{if(!nav.includes(page))setPage(nav[0]||"Dashboard")},[user?.id,user?.permissions?.join(","),page]);
+  // ADMIN can see every module. Other users only see modules for which they
+  // have the corresponding permission.
+  const visibleGroups=moduleGroups
+    .map(g=>({
+      ...g,
+      items:g.items.filter(([,perm])=>user?.role==="ADMIN"||can(user,perm))
+    }))
+    .filter(g=>g.items.length);
+
+  const canAdmin=user?.role==="ADMIN"||can(user,"roles.view")||can(user,"users.view");
+
+  // nav is also used by the route guard below. Administration must therefore
+  // be included whenever its sidebar entry is available; otherwise clicking
+  // "Users & Roles" is immediately reset to Dashboard.
+  const nav=[
+    "Dashboard",
+    ...visibleGroups.flatMap(g=>g.items.map(([label])=>label)),
+    ...(canAdmin?["Users & Roles"]:[])
+  ];
+
+  useEffect(()=>{
+    if(!nav.includes(page)) setPage("Dashboard");
+  },[user?.id,user?.role,user?.permissions?.join(","),page]);
   const go=n=>{setPage(n);setProfileOpen(false)};
   const pageMap={"Users & Roles":"Users"};
   return <div className="app-shell">
