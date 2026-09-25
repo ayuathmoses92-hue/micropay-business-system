@@ -61,6 +61,7 @@ export function permissionForRequest(req) {
     [/^\/phase4\/profitability/, "profitability.view"],
     [/^\/dashboard/, "dashboard.view"],
     [/^\/reports/, "reports.view"],
+    [/^\/analytics/, "reports.view"],
     [/^\/documents\//, "reports.view"],
   ];
   for (const [rx, code] of map) if (rx.test(p)) return code;
