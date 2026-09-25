@@ -1,6 +1,7 @@
 import React,{useEffect,useState} from "react";
 import {createRoot} from "react-dom/client";
 import "./style.css";
+import "./ai-business-analyst.css";
 import logo from "./assets/micropay-logo.png";
 
 const API=import.meta.env.VITE_API_URL||"http://localhost:4000/api";
@@ -39,7 +40,7 @@ function Layout({page,setPage,user,onLogout}){
     ]},
     {title:"HUMAN RESOURCES",items:[
       ["HR Dashboard","hr.employees.view"],["Employees","hr.employees.view"],["Departments","hr.departments.view"],["Positions","hr.positions.view"],["Employment Contracts","hr.contracts.view"],["Attendance","hr.employees.view"],["Leave Management","hr.employees.view"],["Payroll","hr.employees.view"],["Allowances & Deductions","hr.employees.view"],["Loans & Advances","hr.employees.view"],["Performance","hr.employees.view"],["Training","hr.employees.view"],["Recruitment","hr.employees.view"],["Employee Documents","hr.employees.view"],["Disciplinary Cases","hr.employees.view"],["Onboarding & Offboarding","hr.employees.view"],["Employee Assets","hr.employees.view"],["Expense Claims","hr.employees.view"],["HR Reports","hr.employees.view"],["HR Settings","hr.employees.view"]
-    ],
+    ]},
     {title:"AI BUSINESS ANALYST",items:[
       ["AI Executive Overview","reports.view"],["Financial Intelligence","reports.view"],["Sales & Receivables Intelligence","reports.view"],["Procurement Intelligence","reports.view"],["Inventory Intelligence","reports.view"],["HR & Workforce Intelligence","hr.employees.view"],["Payroll Intelligence","hr.employees.view"],["Expense & Cost Intelligence","reports.view"],["Risk & Exception Center","reports.view"],["Ask MicroPay AI","reports.view"]
     ]}
