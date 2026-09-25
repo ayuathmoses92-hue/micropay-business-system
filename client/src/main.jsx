@@ -23,36 +23,53 @@ function Login({onLogin}){const [setup,setSetup]=useState(false);const [f,setF]=
 
 class PageErrorBoundary extends React.Component{constructor(props){super(props);this.state={error:null}}static getDerivedStateFromError(error){return {error}}componentDidCatch(error,info){console.error("Page render error",error,info)}render(){if(this.state.error)return <div className="panel"><h2>Unable to display this module</h2><p className="muted">The page encountered an application error. The error is shown below so it can be corrected without a blank screen.</p><pre style={{whiteSpace:"pre-wrap",color:"crimson"}}>{this.state.error?.message||String(this.state.error)}</pre></div>;return this.props.children}}
 
+const NAV_ICONS={
+  main:"grid",sales:"users",finance:"wallet",procurement:"cart",inventory:"box",hr:"briefcase",ai:"sparkles",admin:"settings",
+  "Dashboard":"grid","Customers":"users","Quotations":"fileText","Invoices":"receipt","Receipts":"creditCard","Customer Statements":"statement",
+  "Expenses":"expense","Payment Vouchers":"voucher","Reports":"chart","Budget vs Actual":"target","Cash & Bank":"bank","Reconciliation":"refresh","Currencies & Rates":"currency","Bills":"fileText","Financial Periods":"calendar","Profitability":"trend",
+  "Suppliers":"building","Purchase Requisitions":"clipboard","RFQs & Quotes":"messages","Purchase Orders":"cart","Goods Receipts":"packageCheck","Inventory":"box",
+  "HR Dashboard":"grid","Employees":"users","Departments":"building","Positions":"briefcase","Employment Contracts":"fileText","Attendance":"clock","Leave Management":"calendar","Payroll":"wallet","Allowances & Deductions":"adjustments","Loans & Advances":"creditCard","Performance":"trend","Training":"graduation","Recruitment":"search","Employee Documents":"folder","Disciplinary Cases":"alert","Onboarding & Offboarding":"userCheck","Employee Assets":"laptop","Expense Claims":"receipt","HR Reports":"chart","HR Settings":"settings",
+  "AI Executive Overview":"grid","Financial Intelligence":"chart","Sales & Receivables Intelligence":"trend","Procurement Intelligence":"cart","Inventory Intelligence":"box","HR & Workforce Intelligence":"users","Payroll Intelligence":"wallet","Expense & Cost Intelligence":"expense","Risk & Exception Center":"alert","Ask MicroPay AI":"sparkles","Users & Roles":"shield"
+};
+function NavIcon({name,size=17}){
+  const common={width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:"1.8",strokeLinecap:"round",strokeLinejoin:"round","aria-hidden":"true"};
+  const paths={
+    grid:<><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
+    users:<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></>,
+    wallet:<><path d="M20 7V5a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h15v12H5a3 3 0 0 1-3-3V6"/><path d="M16 13h2"/></>,
+    cart:<><circle cx="9" cy="20" r="1"/><circle cx="19" cy="20" r="1"/><path d="M3 4h2l2.4 10.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 7H6"/></>,
+    box:<><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></>,
+    briefcase:<><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></>,
+    sparkles:<><path d="m12 3-1.2 3.3L7.5 7.5l3.3 1.2L12 12l1.2-3.3 3.3-1.2-3.3-1.2L12 3zM5 14l-.8 2.2L2 17l2.2.8L5 20l.8-2.2L8 17l-2.2-.8L5 14zM18 13l-1 2.7-2.7 1 2.7 1L18 20.5l1-2.8 2.7-1-2.7-1L18 13z"/></>,
+    settings:<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.2 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2.4v-4h.1A1.7 1.7 0 0 0 4.2 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 8.6 4.2a1.7 1.7 0 0 0 1-.6A1.7 1.7 0 0 0 10 2.5v-.1h4v.1a1.7 1.7 0 0 0 1 1.7 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 8.6c.16.38.4.72.72 1 .3.25.68.4 1.08.4h.1v4h-.1a1.7 1.7 0 0 0-1.8 1z"/></>,
+    fileText:<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></>,
+    receipt:<><path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2z"/><path d="M9 7h6M9 11h6M9 15h4"/></>,
+    creditCard:<><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h2"/></>,
+    statement:<><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></>,expense:<><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>,voucher:<><path d="M4 3h16v18H4zM8 7h8M8 11h5M8 16h8"/></>,chart:<><path d="M3 3v18h18M7 16v-5M12 16V7M17 16v-9"/></>,target:<><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></>,bank:<><path d="M3 10h18M5 10v8M9 10v8M15 10v8M19 10v8M2 21h20M12 3 2 8h20L12 3z"/></>,refresh:<><path d="M20 7h-5V2M4 17h5v5M5.5 9A7 7 0 0 1 18 5l2 2M18.5 15A7 7 0 0 1 6 19l-2-2"/></>,currency:<><circle cx="12" cy="12" r="9"/><path d="M15 8.5c-.7-.8-1.7-1.2-3-1.2-1.7 0-3 1-3 2.4 0 3.6 6 1.6 6 5 0 1.4-1.3 2.4-3 2.4-1.4 0-2.6-.5-3.4-1.5M12 5v14"/></>,calendar:<><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></>,trend:<><path d="m3 17 6-6 4 4 8-9M15 6h6v6"/></>,building:<><path d="M3 21h18M6 21V3h12v18M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/></>,clipboard:<><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2h6v2M9 9h6M9 13h6M9 17h4"/></>,messages:<><path d="M21 15a4 4 0 0 1-4 4H8l-5 3v-7a4 4 0 0 1-1-2.6V7a4 4 0 0 1 4-4h11a4 4 0 0 1 4 4z"/><path d="M7 9h10M7 13h7"/></>,packageCheck:<><path d="M21 8 12 3 3 8v8l9 5 5-2.8M3 8l9 5 9-5M12 13v8M16 15l2 2 4-4"/></>,clock:<><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,adjustments:<><path d="M4 6h10M18 6h2M14 4v4M4 12h3M11 12h9M7 10v4M4 18h8M16 18h4M12 16v4"/></>,graduation:<><path d="m2 10 10-5 10 5-10 5L2 10zM6 12v5c3 2 9 2 12 0v-5M22 10v6"/></>,search:<><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,folder:<><path d="M3 5h6l2 2h10v12H3z"/></>,alert:<><path d="M12 3 2 21h20L12 3zM12 9v5M12 18h.01"/></>,userCheck:<><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM17 11l2 2 4-4"/></>,laptop:<><rect x="4" y="4" width="16" height="12" rx="1"/><path d="M2 20h20M8 20h8"/></>,shield:<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></>
+  };
+  return <svg {...common}>{paths[name]||paths.fileText}</svg>;
+}
+
 function Layout({page,setPage,user,onLogout}){
   const [profileOpen,setProfileOpen]=useState(false);
+  const [collapsed,setCollapsed]=useState({});
   const moduleGroups=[
-    {title:"SALES & CUSTOMER MANAGEMENT",items:[
-      ["Customers","customers.view"],["Quotations","quotations.view"],["Invoices","invoices.view"],["Receipts","receipts.view"],["Customer Statements","statements.view"]
-    ]},
-    {title:"FINANCIAL MANAGEMENT",items:[
-      ["Expenses","expenses.view"],["Payment Vouchers","payment_vouchers.view"],["Reports","reports.view"],["Budget vs Actual","budgets.view"],["Cash & Bank","financial_accounts.view"],["Reconciliation","reconciliation.view"],["Currencies & Rates","currencies.view"],["Bills","supplier_bills.view"],["Financial Periods","periods.view"],["Profitability","profitability.view"]
-    ]},
-    {title:"PROCUREMENT",items:[
-      ["Suppliers","suppliers.view"],["Purchase Requisitions","procurement.requisitions.view"],["RFQs & Quotes","procurement.rfqs.view"],["Purchase Orders","procurement.purchase_orders.view"],["Goods Receipts","procurement.goods_receipts.view"]
-    ]},
-    {title:"INVENTORY & WAREHOUSING",items:[
-      ["Inventory","inventory.stock.view"]
-    ]},
-    {title:"HUMAN RESOURCES",items:[
-      ["HR Dashboard","hr.employees.view"],["Employees","hr.employees.view"],["Departments","hr.departments.view"],["Positions","hr.positions.view"],["Employment Contracts","hr.contracts.view"],["Attendance","hr.employees.view"],["Leave Management","hr.employees.view"],["Payroll","hr.employees.view"],["Allowances & Deductions","hr.employees.view"],["Loans & Advances","hr.employees.view"],["Performance","hr.employees.view"],["Training","hr.employees.view"],["Recruitment","hr.employees.view"],["Employee Documents","hr.employees.view"],["Disciplinary Cases","hr.employees.view"],["Onboarding & Offboarding","hr.employees.view"],["Employee Assets","hr.employees.view"],["Expense Claims","hr.employees.view"],["HR Reports","hr.employees.view"],["HR Settings","hr.employees.view"]
-    ]},
-    {title:"AI BUSINESS ANALYST",items:[
-      ["AI Executive Overview","reports.view"],["Financial Intelligence","reports.view"],["Sales & Receivables Intelligence","reports.view"],["Procurement Intelligence","reports.view"],["Inventory Intelligence","reports.view"],["HR & Workforce Intelligence","hr.employees.view"],["Payroll Intelligence","hr.employees.view"],["Expense & Cost Intelligence","reports.view"],["Risk & Exception Center","reports.view"],["Ask MicroPay AI","reports.view"]
-    ]}
+    {title:"SALES & CUSTOMER MANAGEMENT",icon:"sales",items:[["Customers","customers.view"],["Quotations","quotations.view"],["Invoices","invoices.view"],["Receipts","receipts.view"],["Customer Statements","statements.view"]]},
+    {title:"FINANCIAL MANAGEMENT",icon:"finance",items:[["Expenses","expenses.view"],["Payment Vouchers","payment_vouchers.view"],["Reports","reports.view"],["Budget vs Actual","budgets.view"],["Cash & Bank","financial_accounts.view"],["Reconciliation","reconciliation.view"],["Currencies & Rates","currencies.view"],["Bills","supplier_bills.view"],["Financial Periods","periods.view"],["Profitability","profitability.view"]]},
+    {title:"PROCUREMENT",icon:"procurement",items:[["Suppliers","suppliers.view"],["Purchase Requisitions","procurement.requisitions.view"],["RFQs & Quotes","procurement.rfqs.view"],["Purchase Orders","procurement.purchase_orders.view"],["Goods Receipts","procurement.goods_receipts.view"]]},
+    {title:"INVENTORY & WAREHOUSING",icon:"inventory",items:[["Inventory","inventory.stock.view"]]},
+    {title:"HUMAN RESOURCES",icon:"hr",items:[["HR Dashboard","hr.employees.view"],["Employees","hr.employees.view"],["Departments","hr.departments.view"],["Positions","hr.positions.view"],["Employment Contracts","hr.contracts.view"],["Attendance","hr.employees.view"],["Leave Management","hr.employees.view"],["Payroll","hr.employees.view"],["Allowances & Deductions","hr.employees.view"],["Loans & Advances","hr.employees.view"],["Performance","hr.employees.view"],["Training","hr.employees.view"],["Recruitment","hr.employees.view"],["Employee Documents","hr.employees.view"],["Disciplinary Cases","hr.employees.view"],["Onboarding & Offboarding","hr.employees.view"],["Employee Assets","hr.employees.view"],["Expense Claims","hr.employees.view"],["HR Reports","hr.employees.view"],["HR Settings","hr.employees.view"]]},
+    {title:"AI BUSINESS ANALYST",icon:"ai",items:[["AI Executive Overview","reports.view"],["Financial Intelligence","reports.view"],["Sales & Receivables Intelligence","reports.view"],["Procurement Intelligence","reports.view"],["Inventory Intelligence","reports.view"],["HR & Workforce Intelligence","hr.employees.view"],["Payroll Intelligence","hr.employees.view"],["Expense & Cost Intelligence","reports.view"],["Risk & Exception Center","reports.view"],["Ask MicroPay AI","reports.view"]]}
   ];
   const visibleGroups=moduleGroups.map(g=>({...g,items:g.items.filter(([,perm])=>can(user,perm))})).filter(g=>g.items.length);
-  const nav=["Dashboard",...visibleGroups.flatMap(g=>g.items.map(([label])=>label))];
+  const canAdmin=can(user,"roles.view")||can(user,"users.view");
+  const nav=["Dashboard",...visibleGroups.flatMap(g=>g.items.map(([label])=>label)),...(canAdmin?["Users & Roles"]:[])];
   if(user?.role==="ADMIN" && !nav.includes("Inventory")) nav.push("Inventory");
   if(user?.role==="ADMIN"){["HR Dashboard","Employees","Departments","Positions","Employment Contracts","Attendance","Leave Management","Payroll","Allowances & Deductions","Loans & Advances","Performance","Training","Recruitment","Employee Documents","Disciplinary Cases","Onboarding & Offboarding","Employee Assets","Expense Claims","HR Reports","HR Settings"].forEach(x=>{if(!nav.includes(x))nav.push(x)})}
   if(user?.role==="ADMIN"){["AI Executive Overview","Financial Intelligence","Sales & Receivables Intelligence","Procurement Intelligence","Inventory Intelligence","HR & Workforce Intelligence","Payroll Intelligence","Expense & Cost Intelligence","Risk & Exception Center","Ask MicroPay AI"].forEach(x=>{if(!nav.includes(x))nav.push(x)})}
-  const canAdmin=can(user,"roles.view")||can(user,"users.view");
   useEffect(()=>{if(!nav.includes(page))setPage(nav[0]||"Dashboard")},[user?.id,user?.permissions?.join(","),page]);
   const go=n=>{setPage(n);setProfileOpen(false)};
+  const toggleGroup=title=>setCollapsed(v=>({...v,[title]:!v[title]}));
   const pageMap={"Users & Roles":"Users"};
   return <div className="app-shell">
     <header className="app-header">
@@ -65,13 +82,19 @@ function Layout({page,setPage,user,onLogout}){
     </header>
     <div className="app-body">
       <aside className="sidebar">
-        <div className="sidebar-label main-menu-label">MAIN MENU</div>
-        <button className={`sidebar-link ${page==="Dashboard"?"active":""}`} onClick={()=>go("Dashboard")}><span>Dashboard</span></button>
-        {visibleGroups.map(group=><div className="sidebar-module" key={group.title}>
-          <div className="sidebar-label module-label">{group.title}</div>
-          {group.items.map(([label])=><button key={label} className={`sidebar-link ${page===label?"active":""}`} onClick={()=>go(label)}><span>{label}</span></button>)}
-        </div>)}
-        {canAdmin&&<div className="sidebar-module admin-module"><div className="sidebar-label module-label">ADMINISTRATION</div><button className={`sidebar-link ${page==="Users & Roles"?"active":""}`} onClick={()=>go("Users & Roles")}>Users & Roles</button></div>}
+        <div className="sidebar-section-heading main-menu-heading"><span className="sidebar-heading-icon"><NavIcon name="grid" size={15}/></span><span>MAIN MENU</span></div>
+        <button className={`sidebar-link ${page==="Dashboard"?"active":""}`} onClick={()=>go("Dashboard")}><span className="sidebar-item-icon"><NavIcon name={NAV_ICONS.Dashboard}/></span><span className="sidebar-item-text">Dashboard</span></button>
+        {visibleGroups.map(group=>{
+          const isOpen=!collapsed[group.title];
+          const hasActive=group.items.some(([label])=>label===page);
+          return <div className={`sidebar-module ${hasActive?"module-active":""}`} key={group.title}>
+            <button className="sidebar-section-heading module-heading" onClick={()=>toggleGroup(group.title)} aria-expanded={isOpen} title={`${isOpen?"Collapse":"Expand"} ${group.title}`}>
+              <span className="sidebar-heading-icon"><NavIcon name={group.icon} size={15}/></span><span className="sidebar-heading-text">{group.title}</span><span className={`module-chevron ${isOpen?"open":""}`}>›</span>
+            </button>
+            {isOpen&&<div className="sidebar-module-items">{group.items.map(([label])=><button key={label} className={`sidebar-link ${page===label?"active":""}`} onClick={()=>go(label)} title={label}><span className="sidebar-item-icon"><NavIcon name={NAV_ICONS[label]}/></span><span className="sidebar-item-text">{label}</span></button>)}</div>}
+          </div>
+        })}
+        {canAdmin&&<div className={`sidebar-module admin-module ${page==="Users & Roles"?"module-active":""}`}><div className="sidebar-section-heading admin-heading"><span className="sidebar-heading-icon"><NavIcon name="settings" size={15}/></span><span>ADMINISTRATION</span></div><button className={`sidebar-link ${page==="Users & Roles"?"active":""}`} onClick={()=>go("Users & Roles")}><span className="sidebar-item-icon"><NavIcon name={NAV_ICONS["Users & Roles"]}/></span><span className="sidebar-item-text">Users & Roles</span></button></div>}
       </aside>
       <main className="content-area">
         {pageMap[page]==="Users"?<Users user={user}/>:page==="Dashboard"?<Dashboard/>:page==="Customers"?<Customers user={user}/>:page==="Quotations"?<Quotations user={user}/>:page==="Invoices"?<Invoices user={user}/>:page==="Receipts"?<Receipts user={user}/>:page==="Expenses"?<Expenses user={user}/>:page==="Payment Vouchers"?<PaymentVouchers user={user}/>:page==="Reports"?<Reports user={user}/>:page==="Budget vs Actual"?<BudgetVsActual user={user}/>:page==="Cash & Bank"?<CashBankAccounts user={user}/>:page==="Reconciliation"?<Reconciliation user={user}/>:page==="Currencies & Rates"?<CurrenciesRates user={user}/>:page==="Suppliers"?<Suppliers user={user}/>:page==="Purchase Requisitions"?<PurchaseRequisitions user={user}/>:page==="RFQs & Quotes"?<RFQsQuotes user={user}/>:page==="Purchase Orders"?<PurchaseOrders user={user}/>:page==="Goods Receipts"?<GoodsReceipts user={user}/>:page==="Inventory"?<InventoryModule user={user}/>:page==="HR Dashboard"?<HRDashboard/>:page==="Employees"?<HREmployees user={user}/>:page==="Departments"?<HRDepartments/>:page==="Positions"?<HRPositions/>:page==="Employment Contracts"?<HRContracts/>:page==="Attendance"?<HRAttendance/>:page==="Leave Management"?<HRLeave/>:page==="Payroll"?<HRPayroll/>:page==="Allowances & Deductions"?<HRPayComponents/>:page==="Loans & Advances"?<HRLoans/>:page==="Performance"?<HRPerformance/>:page==="Training"?<HRTraining/>:page==="Recruitment"?<HRRecruitment/>:page==="Employee Documents"?<HRDocuments/>:page==="Disciplinary Cases"?<HRDisciplinary/>:page==="Onboarding & Offboarding"?<HROnboarding/>:page==="Employee Assets"?<HREmployeeAssets/>:page==="Expense Claims"?<HRExpenseClaims/>:page==="HR Reports"?<HRReports/>:page==="HR Settings"?<HRSettings/>:["AI Executive Overview","Financial Intelligence","Sales & Receivables Intelligence","Procurement Intelligence","Inventory Intelligence","HR & Workforce Intelligence","Payroll Intelligence","Expense & Cost Intelligence","Risk & Exception Center","Ask MicroPay AI"].includes(page)?<AIBusinessAnalyst page={page}/>:page==="Bills"?<Bills user={user}/>:page==="Customer Statements"?<CustomerStatements user={user}/>:page==="Financial Periods"?<FinancialPeriods user={user}/>:page==="Profitability"?<Profitability user={user}/>:<Dashboard/>}

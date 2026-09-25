@@ -428,3 +428,32 @@ body { overflow: hidden; }
 
 /* Complete HR module */
 .hr-report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.hr-report-grid .panel{min-width:0}.hr-form-panel .form-grid>div{min-width:0}.hr-form-panel input[type="checkbox"]{width:auto!important}.hr-form-panel .form-actions{grid-column:1/-1}@media(max-width:900px){.hr-report-grid{grid-template-columns:1fr}}
+
+
+/* =========================================================
+   PROFESSIONAL ERP SIDEBAR NAVIGATION
+   ========================================================= */
+.sidebar{width:270px;flex-basis:270px;padding:18px 12px 24px;background:#fff;border-right:1px solid #e2e8ec}
+.sidebar-section-heading{width:100%;display:flex;align-items:center;gap:9px;color:#70818b;font-size:10px;font-weight:800;letter-spacing:.075em;text-transform:uppercase;padding:10px 10px 8px;margin:0;background:transparent;border:0;border-radius:7px;text-align:left}
+.main-menu-heading{color:#244F6A;margin-bottom:3px}
+.sidebar-heading-icon{width:20px;height:20px;display:grid;place-items:center;flex:0 0 20px;color:#557786}
+.sidebar-heading-text{min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.module-heading{cursor:pointer;margin-top:10px;transition:background .15s ease,color .15s ease}
+.module-heading:hover{background:#f5f8fa;color:#244F6A}
+.module-chevron{margin-left:auto;font-size:18px;line-height:1;transform:rotate(0deg);transition:transform .18s ease;color:#94a3ab}
+.module-chevron.open{transform:rotate(90deg)}
+.sidebar-module{position:relative;margin-top:4px;padding-top:1px}
+.sidebar-module.module-active>.module-heading{color:#244F6A}
+.sidebar-module-items{display:grid;gap:1px}
+.sidebar-link{width:100%;min-height:39px;display:flex;align-items:center;gap:10px;border:0;background:transparent;color:#536671;text-align:left;padding:8px 10px;border-radius:7px;margin:1px 0;font-size:12.5px;font-weight:500;transition:background .15s ease,color .15s ease,box-shadow .15s ease}
+.sidebar-item-icon{width:20px;height:20px;display:grid;place-items:center;flex:0 0 20px;color:#7b8d97;transition:color .15s ease}
+.sidebar-item-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sidebar-link:hover{background:#f2f6f8;color:#244F6A}
+.sidebar-link:hover .sidebar-item-icon{color:#2F6688}
+.sidebar-link.active{background:#e8f1f5;color:#1f506d;font-weight:700;border-left:0;padding-left:10px;box-shadow:inset 3px 0 0 #2F6688}
+.sidebar-link.active .sidebar-item-icon{color:#2F6688}
+.admin-module{border-top:1px solid #e8edf0;margin-top:16px;padding-top:8px}
+.admin-heading{color:#70818b;cursor:default}
+.sidebar::-webkit-scrollbar{width:7px}.sidebar::-webkit-scrollbar-track{background:transparent}.sidebar::-webkit-scrollbar-thumb{background:#c5d0d6;border:2px solid #fff;border-radius:8px}.sidebar::-webkit-scrollbar-thumb:hover{background:#9eafb8}
+@media(max-width:1000px){.sidebar{width:235px;flex-basis:235px}}
+@media(max-width:650px){.sidebar{width:100%;flex-basis:auto;padding:7px 8px;gap:4px}.sidebar-section-heading{display:none}.sidebar-module{display:contents}.sidebar-module-items{display:flex;gap:3px}.sidebar-link{width:auto;min-height:38px;flex:0 0 auto;padding:8px 10px}.sidebar-link.active{padding-left:10px;box-shadow:inset 0 -3px 0 #2F6688}.sidebar-item-text{overflow:visible}.admin-module{border:0;margin:0;padding:0}}
