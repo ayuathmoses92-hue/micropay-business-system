@@ -596,4 +596,284 @@ body { overflow: hidden; }
 .sidebar-link {
   height: auto !important;
   min-height: 40px;
+}/* =========================================================
+   MicroPay ERP — Form & Procurement UI Polish
+   Safe override block: append to the END of client/src/style.css
+   ========================================================= */
+
+/* Keep all form elements inside their containers */
+.content-area,
+.panel,
+.panel form,
+.form-grid,
+.procurement-lines,
+.procurement-line {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.panel input,
+.panel select,
+.panel textarea,
+.panel button {
+  box-sizing: border-box;
+}
+
+/* ---------- Professional create/edit panels ---------- */
+.procurement-form {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 0 24px;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.procurement-form > h2 {
+  margin: 0 0 22px;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.procurement-form form {
+  display: block !important;
+  width: 100%;
+}
+
+/* Main fields always stay above Line Items */
+.procurement-form .form-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 22px;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.procurement-form .form-grid > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.procurement-form .form-grid > .form-field-full {
+  grid-column: 1 / -1;
+}
+
+.procurement-form label {
+  display: block;
+  margin: 0 0 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.procurement-form input,
+.procurement-form select,
+.procurement-form textarea {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  margin: 0;
+}
+
+.procurement-form textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+/* ---------- Line Items ---------- */
+.procurement-form .procurement-lines {
+  display: block !important;
+  width: 100%;
+  max-width: none;
+  margin: 8px 0 0;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.procurement-lines .section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 16px;
+}
+
+.procurement-lines .section-title h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.procurement-lines .section-title button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Description | Qty | Unit | Price | Remove */
+.procurement-line {
+  display: grid !important;
+  grid-template-columns:
+    minmax(220px, 2.4fr)
+    minmax(90px, .65fr)
+    minmax(100px, .75fr)
+    minmax(150px, 1fr)
+    auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.procurement-line input,
+.procurement-line select {
+  width: 100% !important;
+  min-width: 0;
+  margin: 0 !important;
+}
+
+.procurement-line button {
+  width: auto;
+  min-width: 86px;
+  margin: 0 !important;
+  white-space: nowrap;
+}
+
+/* ---------- Form action buttons ---------- */
+.procurement-form .form-actions,
+.panel .form-actions {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+  margin-top: 22px;
+}
+
+.procurement-form .form-actions button,
+.panel .form-actions button {
+  width: auto;
+  min-width: 110px;
+  margin: 0;
+}
+
+/* ---------- Toolbars with multiple action buttons ---------- */
+.toolbar {
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.toolbar > div:last-child {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.toolbar button {
+  white-space: nowrap;
+}
+
+/* ---------- Goods Receipt table inputs ---------- */
+.procurement-form .tablewrap {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 18px;
+}
+
+.procurement-form .tablewrap table {
+  width: 100%;
+  min-width: 760px;
+}
+
+.procurement-form .tablewrap td input,
+.procurement-form .tablewrap td select {
+  min-width: 100px;
+}
+
+/* ---------- Generic panels/forms: prevent old grid rules from overlapping ---------- */
+.customer-form-panel,
+.quotation-panel,
+.panel {
+  max-width: 100%;
+}
+
+.customer-form-panel form,
+.quotation-panel form {
+  min-width: 0;
+}
+
+/* ---------- Tablet ---------- */
+@media (max-width: 1000px) {
+  .procurement-form .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .procurement-line {
+    grid-template-columns:
+      minmax(180px, 2fr)
+      minmax(80px, .7fr)
+      minmax(90px, .8fr)
+      minmax(130px, 1fr)
+      auto;
+  }
+}
+
+/* ---------- Mobile / narrow content area ---------- */
+@media (max-width: 760px) {
+  .procurement-form {
+    padding: 18px;
+  }
+
+  .procurement-form .form-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .procurement-form .form-grid > .form-field-full {
+    grid-column: auto;
+  }
+
+  .procurement-line {
+    grid-template-columns: 1fr 1fr;
+    padding: 14px;
+    border: 1px solid rgba(0,0,0,.08);
+    border-radius: 8px;
+  }
+
+  .procurement-line input:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .procurement-line button {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .procurement-lines .section-title {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .procurement-form .form-actions,
+  .panel .form-actions {
+    justify-content: flex-start;
+  }
+}
+
+/* ---------- Very small screens ---------- */
+@media (max-width: 480px) {
+  .procurement-line {
+    grid-template-columns: 1fr;
+  }
+
+  .procurement-line input:first-child,
+  .procurement-line button {
+    grid-column: auto;
+  }
+
+  .procurement-form .form-actions button,
+  .panel .form-actions button {
+    width: 100%;
+  }
 }
