@@ -45,6 +45,7 @@ export function permissionForRequest(req) {
     [/^\/customers/, `customers.${action}`],
     [/^\/quotations/, `quotations.${action}`],
     [/^\/invoices/, `invoices.${action}`],
+    [/^\/delivery-notes/, `invoices.${action}`],
     [/^\/receipts/, `receipts.${action}`],
     [/^\/expenses/, `expenses.${action}`],
     [/^\/payment-vouchers/, `payment_vouchers.${action}`],

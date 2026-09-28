@@ -326,6 +326,31 @@ export async function makeInvoicePdf({ invoice, customer, items, bankAccount }) 
   return promise;
 }
 
+
+export async function makeDeliveryNotePdf({ delivery, customer, invoice, items }) {
+  const { doc, promise } = beginDocument("DELIVERY NOTE", delivery.number, delivery.delivery_date, { customer: customer?.name });
+  let y = 176;
+  doc.fillColor(navy).font("Helvetica-Bold").fontSize(9).text("DELIVER TO", margin, y);
+  doc.fillColor(dark).font("Helvetica-Bold").fontSize(10).text(customer?.name || "", margin, y + 17, {width:245});
+  doc.font("Helvetica").fontSize(8).text(customer?.address || "", margin, y + 32, {width:245});
+  const rx=330;
+  [["Invoice",invoice?.number],["PO / LPO",delivery.po_number||"—"],["Location",delivery.delivery_location||"—"],["Time",delivery.delivery_time||"—"]].forEach(([a,b],i)=>{doc.fillColor(navy).font("Helvetica-Bold").fontSize(8).text(`${a}:`,rx,y+i*17,{width:65});doc.fillColor(dark).font("Helvetica").text(String(b||"—"),rx+68,y+i*17,{width:155});});
+  y += 84;
+  const cols=[margin,70,280,335,395,455,553];
+  doc.rect(margin,y,contentWidth,24).fill(lightBlue);
+  ["#","Description","Ordered","Prev.","This Delivery","Unit"].forEach((h,i)=>doc.fillColor(navy).font("Helvetica-Bold").fontSize(7.4).text(h,cols[i]+3,y+8,{width:cols[i+1]-cols[i]-6,align:i>1?"center":"left"}));
+  y+=24;
+  items.forEach((x,i)=>{const h=38; doc.strokeColor(border).rect(margin,y,contentWidth,h).stroke(); const vals=[String(i+1),x.description,money(x.ordered_quantity),money(x.previous_quantity||0),money(x.delivered_quantity),x.unit||"EA"]; vals.forEach((v,j)=>doc.fillColor(dark).font("Helvetica").fontSize(7.2).text(v,cols[j]+3,y+6,{width:cols[j+1]-cols[j]-6,align:j>1?"center":"left",height:26})); y+=h; if(y>620){drawFooter(doc);doc.addPage();y=80;}});
+  y+=12;
+  if(items.some(x=>x.serial_numbers)){doc.fillColor(navy).font("Helvetica-Bold").fontSize(8).text("Serial / Asset Numbers",margin,y); y+=13; items.filter(x=>x.serial_numbers).forEach(x=>{doc.fillColor(dark).font("Helvetica").fontSize(7.5).text(`${x.description}: ${x.serial_numbers}`,margin,y,{width:contentWidth});y+=14;});}
+  if(delivery.notes){doc.fillColor(navy).font("Helvetica-Bold").fontSize(8).text("Delivery Remarks",margin,y+5);doc.fillColor(dark).font("Helvetica").fontSize(7.5).text(delivery.notes,margin,y+18,{width:contentWidth});y+=48;}
+  const sy=Math.min(Math.max(y+18,590),690);
+  doc.fillColor(navy).font("Helvetica-Bold").fontSize(8).text("DELIVERED BY",margin,sy).text("RECEIVED BY",320,sy);
+  doc.fillColor(dark).font("Helvetica").fontSize(8).text(delivery.delivered_by||"____________________________",margin,sy+18,{width:200}).text(delivery.receiver_name||"____________________________",320,sy+18,{width:200});
+  doc.fontSize(7.5).text("Signature: __________________________",margin,sy+39).text(`Title: ${delivery.receiver_title||"_____________________"}`,320,sy+39).text("Signature / Stamp: __________________",320,sy+56);
+  drawFooter(doc); doc.end(); return promise;
+}
+
 export async function makeReceiptPdf({ payment, invoice, customer }) {
   const { doc, promise } = beginDocument("OFFICIAL RECEIPT", payment.receipt_number, payment.payment_date, { customer: customer?.name });
   drawCustomerBox(doc, customer, 176);
