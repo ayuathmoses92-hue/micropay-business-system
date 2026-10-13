@@ -285,18 +285,18 @@ export async function makeInvoicePdf({ invoice, customer, items, bankAccount }) 
 
   // Commercial invoice information block. Bank details are pulled from the
   // active BANK account configured under Cash & Bank.
-  const infoY = totalsY + 128;
+  const infoY = totalsY + 148;
   const words = amountInWords(invoice.total, currencyCode);
   const wordsW = 300;
-  doc.fillColor(lightBlue).roundedRect(margin, infoY, wordsW, 62, 5).fill();
+  doc.fillColor(lightBlue).roundedRect(margin, infoY, wordsW, 46, 5).fill();
   doc.fillColor(navy).font("Helvetica-Bold").fontSize(8.5).text("Amount in Words:", margin + 10, infoY + 9, { width: wordsW - 20 });
-  doc.fillColor(dark).font("Helvetica").fontSize(8.5).text(words, margin + 10, infoY + 25, { width: wordsW - 20, height: 30 });
+  doc.fillColor(dark).font("Helvetica").fontSize(8.2).text(words, margin + 10, infoY + 23, { width: wordsW - 20, height: 18 });
 
-  const bankY = infoY + 68;
-  const bankH = bankAccount ? 70 : 50;
+  const bankY = infoY + 52;
+  const bankH = bankAccount ? 52 : 42;
   doc.fillColor("#F7F9FA").roundedRect(margin, bankY, contentWidth, bankH, 5).fill();
   doc.strokeColor(border).lineWidth(0.6).roundedRect(margin, bankY, contentWidth, bankH, 5).stroke();
-  doc.fillColor(navy).font("Helvetica-Bold").fontSize(9).text("BANK ACCOUNT DETAILS", margin + 12, bankY + 10);
+  doc.fillColor(navy).font("Helvetica-Bold").fontSize(8.5).text("BANK ACCOUNT DETAILS", margin + 12, bankY + 7);
   if (bankAccount) {
     const fields = [
       ["Bank / Institution:", bankAccount.institution_name || "N/A"],
@@ -308,12 +308,12 @@ export async function makeInvoicePdf({ invoice, customer, items, bankAccount }) 
       const col = idx < 2 ? 0 : 1;
       const row = idx % 2;
       const x = margin + 12 + col * 255;
-      const yy = bankY + 28 + row * 18;
-      doc.fillColor(dark).font("Helvetica-Bold").fontSize(7.8).text(label, x, yy, { width: 92, lineBreak: false });
+      const yy = bankY + 22 + row * 14;
+      doc.fillColor(dark).font("Helvetica-Bold").fontSize(7.4).text(label, x, yy, { width: 92, lineBreak: false });
       doc.font("Helvetica").text(String(value), x + 96, yy, { width: 145, lineBreak: false });
     });
   } else {
-    doc.fillColor(dark).font("Helvetica").fontSize(8).text("No active bank account has been configured in Cash & Bank.", margin + 12, bankY + 29);
+    doc.fillColor(dark).font("Helvetica").fontSize(7.8).text("No active bank account has been configured in Cash & Bank.", margin + 12, bankY + 22);
   }
 
   // Keep the status/notes and signature clear of the anchored footer.
