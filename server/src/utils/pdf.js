@@ -326,7 +326,10 @@ export async function makeInvoicePdf({ invoice, customer, items, bankAccount }) 
 
   // Signature is kept on the right so it does not collide with invoice notes.
   const sigX = 350;
-  const sigY = Math.min(bottomY + 8, footerTop - 62);
+  // Start the signature block strictly below the bank-details box.
+  // Do not clamp it upward toward the footer, because that can pull the
+  // company name back into the bank-details section.
+  const sigY = bottomY + 2;
   doc.fillColor(navy).font("Helvetica-Bold").fontSize(8.5).text("Micro Pay Company Limited", sigX, sigY, { width: 203, align: "right", lineBreak: false });
   doc.strokeColor(blue).lineWidth(0.8).moveTo(sigX + 55, sigY + 27).lineTo(pageWidth - margin, sigY + 27).stroke();
   doc.fillColor(dark).font("Helvetica").fontSize(7.5).text("Authorized Signature", sigX + 55, sigY + 34, { width: 148, align: "right", lineBreak: false });
