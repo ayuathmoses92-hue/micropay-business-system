@@ -157,16 +157,26 @@ function drawHeader(doc, title, number, date, extra = {}) {
   doc.strokeColor(blue).lineWidth(1.2).moveTo(margin, 155).lineTo(pageWidth - margin, 155).stroke();
 }
 
-function drawCustomerBox(doc, customer, y = 176) {
-  const x = margin, w = 300, h = 116;
+function drawCustomerBox(doc, customer, y = 174) {
+  // Keep the customer section compact. The previous fixed 116pt box left a
+  // large empty area whenever only the customer name was available and pushed
+  // the commercial content into the footer.
+  const x = margin, w = 300;
+  const details = [];
+  if (customer?.contact_person) details.push(`Attn:    ${customer.contact_person}`);
+  if (customer?.phone) details.push(`Tel:      ${customer.phone}`);
+  if (customer?.email) details.push(`Email:   ${customer.email}`);
+  if (customer?.address) details.push(`Address: ${customer.address}`);
+
+  const h = details.length ? Math.min(104, 58 + details.length * 12) : 58;
   doc.fillColor(lightBlue).roundedRect(x, y, w, h, 5).fill();
-  doc.fillColor(navy).font("Helvetica-Bold").fontSize(10).text("To:", x + 12, y + 12);
-  doc.fontSize(13).text(customer?.name || "", x + 12, y + 31);
-  doc.fillColor(dark).font("Helvetica").fontSize(8.5);
-  if (customer?.contact_person) doc.text(`Attn:    ${customer.contact_person}`, x + 12, y + 55);
-  if (customer?.phone) doc.text(`Tel:      ${customer.phone}`, x + 12, y + 70);
-  if (customer?.email) doc.text(`Email:   ${customer.email}`, x + 12, y + 85);
-  if (customer?.address) doc.text(`Address: ${customer.address}`, x + 12, y + 100, { width: w - 24 });
+  doc.fillColor(navy).font("Helvetica-Bold").fontSize(9).text("To:", x + 12, y + 10);
+  doc.fontSize(12).text(customer?.name || "", x + 12, y + 27, { width: w - 24, height: 18 });
+  doc.fillColor(dark).font("Helvetica").fontSize(7.8);
+  details.forEach((line, index) => {
+    doc.text(line, x + 12, y + 48 + index * 12, { width: w - 24, height: 11, ellipsis: true });
+  });
+  return y + h;
 }
 
 function drawItemsTable(doc, items, startY) {
@@ -241,9 +251,9 @@ function beginDocument(title, number, date, extra = {}) {
 
 export async function makeQuotationPdf({ quotation, customer, items }) {
   const { doc, promise } = beginDocument("QUOTATION", quotation.number, quotation.quote_date, { validUntil: quotation.valid_until });
-  drawCustomerBox(doc, customer);
+  const customerBottom = drawCustomerBox(doc, customer);
 
-  const y = drawItemsTable(doc, items, 318);
+  const y = drawItemsTable(doc, items, customerBottom + 20);
   const notesY = y + 18;
   doc.fillColor(navy).font("Helvetica-Bold").fontSize(9).text("Notes:", margin, notesY);
   doc.fillColor(lightBlue).roundedRect(margin, notesY + 16, 270, 78, 5).fill();
@@ -267,22 +277,22 @@ export async function makeQuotationPdf({ quotation, customer, items }) {
 
 export async function makeInvoicePdf({ invoice, customer, items, bankAccount }) {
   const { doc, promise } = beginDocument("INVOICE", invoice.number, invoice.invoice_date, { customer: customer?.name });
-  drawCustomerBox(doc, customer);
-  const y = drawItemsTable(doc, items, 318);
+  const customerBottom = drawCustomerBox(doc, customer);
+  const y = drawItemsTable(doc, items, customerBottom + 20);
   const currencyCode = String(invoice.currency_code || "USD").toUpperCase();
   const totalsY = y + 18;
   drawTotals(doc, [["Subtotal:", invoice.subtotal], ["Discount:", invoice.discount], ["Tax:", invoice.tax], [`TOTAL (${currencyCode}):`, invoice.total], [`PAID (${currencyCode}):`, invoice.paid], [`BALANCE (${currencyCode}):`, invoice.balance]], totalsY);
 
   // Commercial invoice information block. Bank details are pulled from the
   // active BANK account configured under Cash & Bank.
-  const infoY = totalsY + 150;
+  const infoY = totalsY + 128;
   const words = amountInWords(invoice.total, currencyCode);
   const wordsW = 300;
   doc.fillColor(lightBlue).roundedRect(margin, infoY, wordsW, 62, 5).fill();
   doc.fillColor(navy).font("Helvetica-Bold").fontSize(8.5).text("Amount in Words:", margin + 10, infoY + 9, { width: wordsW - 20 });
   doc.fillColor(dark).font("Helvetica").fontSize(8.5).text(words, margin + 10, infoY + 25, { width: wordsW - 20, height: 30 });
 
-  const bankY = infoY + 72;
+  const bankY = infoY + 68;
   const bankH = bankAccount ? 70 : 50;
   doc.fillColor("#F7F9FA").roundedRect(margin, bankY, contentWidth, bankH, 5).fill();
   doc.strokeColor(border).lineWidth(0.6).roundedRect(margin, bankY, contentWidth, bankH, 5).stroke();
@@ -307,7 +317,7 @@ export async function makeInvoicePdf({ invoice, customer, items, bankAccount }) 
   }
 
   // Keep the status/notes and signature clear of the anchored footer.
-  const bottomY = bankY + bankH + 20;
+  const bottomY = bankY + bankH + 10;
   doc.fillColor(navy).font("Helvetica-Bold").fontSize(8.5).text(`Payment Status: ${invoice.status || "ISSUED"}`, margin, bottomY, { width: 260, lineBreak: false });
   if (invoice.notes) {
     doc.fillColor(navy).font("Helvetica-Bold").fontSize(8.5).text("Notes:", margin, bottomY + 19, { lineBreak: false });
