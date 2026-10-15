@@ -52,7 +52,7 @@ export function permissionForRequest(req) {
     [/^\/financial-accounts/, `financial_accounts.${action}`],
     [/^\/reconciliations/, `reconciliation.${action}`],
     [/^\/budgets/, `budgets.${action}`],
-    [/^\/phase4\/currencies/, `currencies.${action === "edit" ? "manage" : action}`],
+    [/^\/phase4\/currencies/, `currencies.${["create","edit","delete"].includes(action) ? "manage" : "view"}`],
     [/^\/phase4\/exchange-rates/, `currencies.${action === "create" || action === "edit" || action === "delete" ? "manage" : "view"}`],
     [/^\/phase4\/suppliers/, `suppliers.${action}`],
     [/^\/phase4\/bills/, `supplier_bills.${action}`],

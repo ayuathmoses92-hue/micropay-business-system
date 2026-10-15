@@ -18,9 +18,51 @@ function base(v,rate){return Math.round(Number(v||0)*Number(rate)*100)/100;}
 
 // Currency master and exchange rates
 router.get("/phase4/currencies",async(req,res)=>{if(!requireRole(req,res,["ADMIN","MANAGER","FINANCE"]))return;res.json((await query("SELECT * FROM currencies ORDER BY is_base DESC,code")).rows)});
-router.patch("/phase4/currencies/:code",async(req,res)=>{if(!requireRole(req,res,["ADMIN"]))return;const active=req.body.active!==false;try{const r=await query("UPDATE currencies SET active=$1 WHERE code=$2 RETURNING *",[active,req.params.code.toUpperCase()]);if(!r.rowCount)return res.status(404).json({error:"Currency not found"});res.json(r.rows[0])}catch(e){res.status(400).json({error:e.message})}});
+router.post("/phase4/currencies",async(req,res)=>{
+  if(!requireRole(req,res,["ADMIN"]))return;
+  const code=String(req.body?.code||"").trim().toUpperCase();
+  const name=String(req.body?.name||"").trim();
+  const symbol=String(req.body?.symbol||"").trim();
+  const decimals=Number(req.body?.decimals??2);
+  if(!/^[A-Z]{3}$/.test(code)||!name||!symbol||name.length>100||symbol.length>12||!Number.isInteger(decimals)||decimals<0||decimals>6)
+    return res.status(400).json({error:"A three-letter code, name, symbol and decimals (0–6) are required"});
+  try{
+    const columns=(await query("SELECT column_name FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='currencies'")).rows.map(x=>x.column_name);
+    const fields=['code','name','symbol'];const values=[code,name,symbol];
+    if(columns.includes('decimals')){fields.push('decimals');values.push(decimals)}
+    if(columns.includes('active')){fields.push('active');values.push(true)}
+    if(columns.includes('is_base')){fields.push('is_base');values.push(false)}
+    const r=await query(`INSERT INTO currencies (${fields.join(',')}) VALUES (${values.map((_,i)=>'$'+(i+1)).join(',')}) RETURNING *`,values);
+    res.status(201).json(r.rows[0]);
+  }catch(e){if(e.code==='23505')return res.status(409).json({error:`Currency ${code} already exists`});res.status(400).json({error:e.message})}
+});
+router.patch("/phase4/currencies/:code",async(req,res)=>{
+  if(!requireRole(req,res,["ADMIN"]))return;
+  const code=String(req.params.code||"").toUpperCase();
+  const {name,symbol,active}=req.body||{};
+  if(name!==undefined&&(!String(name).trim()||String(name).length>100))return res.status(400).json({error:"Valid currency name is required"});
+  if(symbol!==undefined&&(!String(symbol).trim()||String(symbol).length>12))return res.status(400).json({error:"Valid currency symbol is required"});
+  if(code==='USD'&&active===false)return res.status(400).json({error:"The base USD currency cannot be deactivated"});
+  const updates=[],values=[];
+  if(name!==undefined){values.push(String(name).trim());updates.push(`name=$${values.length}`)}
+  if(symbol!==undefined){values.push(String(symbol).trim());updates.push(`symbol=$${values.length}`)}
+  if(active!==undefined){if(typeof active!=="boolean")return res.status(400).json({error:"Active must be true or false"});values.push(active);updates.push(`active=$${values.length}`)}
+  if(!updates.length)return res.status(400).json({error:"No changes supplied"});
+  try{values.push(code);const r=await query(`UPDATE currencies SET ${updates.join(',')} WHERE code=$${values.length} RETURNING *`,values);if(!r.rowCount)return res.status(404).json({error:"Currency not found"});res.json(r.rows[0])}catch(e){res.status(400).json({error:e.message})}
+});
 router.post("/phase4/exchange-rates",async(req,res)=>{if(!requireRole(req,res,["ADMIN","FINANCE"]))return;const {rate_date,from_currency,to_currency,rate,source="",notes=""}=req.body;if(!rate_date||!from_currency||!to_currency||Number(rate)<=0)return res.status(400).json({error:"Date, currencies and a positive rate are required"});try{const r=await query(`INSERT INTO exchange_rates(rate_date,from_currency,to_currency,rate,source,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(rate_date,from_currency,to_currency) DO UPDATE SET rate=EXCLUDED.rate,source=EXCLUDED.source,notes=EXCLUDED.notes RETURNING *`,[rate_date,from_currency.toUpperCase(),to_currency.toUpperCase(),rate,source,notes,req.user.id]);res.status(201).json(r.rows[0])}catch(e){res.status(400).json({error:e.message})}});
 router.get("/phase4/exchange-rates",async(req,res)=>{if(!requireRole(req,res,["ADMIN","MANAGER","FINANCE"]))return;res.json((await query(`SELECT e.*,f.name from_name,t.name to_name FROM exchange_rates e JOIN currencies f ON f.code=e.from_currency JOIN currencies t ON t.code=e.to_currency ORDER BY e.rate_date DESC,e.from_currency,e.to_currency LIMIT 500`)).rows)});
+
+router.patch("/phase4/exchange-rates/:id",async(req,res)=>{
+  if(!requireRole(req,res,["ADMIN","FINANCE"]))return;
+  const rate=Number(req.body?.rate);
+  if(!Number.isFinite(rate)||rate<=0)return res.status(400).json({error:"A positive exchange rate is required"});
+  try{const r=await query("UPDATE exchange_rates SET rate=$1,source=$2 WHERE id=$3 RETURNING *",[rate,String(req.body?.source||""),req.params.id]);if(!r.rowCount)return res.status(404).json({error:"Exchange rate not found"});res.json(r.rows[0])}catch(e){res.status(400).json({error:e.message})}
+});
+router.delete("/phase4/exchange-rates/:id",async(req,res)=>{
+  if(!requireRole(req,res,["ADMIN","FINANCE"]))return;
+  try{const r=await query("DELETE FROM exchange_rates WHERE id=$1 RETURNING id",[req.params.id]);if(!r.rowCount)return res.status(404).json({error:"Exchange rate not found"});res.json({success:true})}catch(e){res.status(400).json({error:e.message})}
+});
 
 // Currency-aware financial accounts. Existing accounts default to USD after migration.
 router.post("/financial-accounts",async(req,res)=>{
