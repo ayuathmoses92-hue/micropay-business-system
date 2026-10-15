@@ -17,6 +17,14 @@ async function rateFor(client,from,to,date,provided){
 function base(v,rate){return Math.round(Number(v||0)*Number(rate)*100)/100;}
 
 // Currency master and exchange rates
+// Active currencies available to all users who can view quotations.
+router.get("/quotation-currencies",async(req,res)=>{
+  try {
+    const result=await query("SELECT code,name,symbol FROM currencies WHERE active = TRUE ORDER BY is_base DESC,code");
+    res.json(result.rows);
+  } catch(e) { res.status(500).json({error:"Unable to load available currencies"}); }
+});
+
 router.get("/phase4/currencies",async(req,res)=>{if(!requireRole(req,res,["ADMIN","MANAGER","FINANCE"]))return;res.json((await query("SELECT * FROM currencies ORDER BY is_base DESC,code")).rows)});
 router.post("/phase4/currencies",async(req,res)=>{
   if(!requireRole(req,res,["ADMIN"]))return;

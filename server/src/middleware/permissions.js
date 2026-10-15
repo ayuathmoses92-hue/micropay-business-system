@@ -43,6 +43,7 @@ export function permissionForRequest(req) {
 
   const map = [
     [/^\/customers/, `customers.${action}`],
+    [/^\/quotation-currencies$/, "quotations.view"],
     [/^\/quotations/, `quotations.${action}`],
     [/^\/invoices/, `invoices.${action}`],
     [/^\/delivery-notes/, `invoices.${action}`],
