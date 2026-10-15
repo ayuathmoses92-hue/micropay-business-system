@@ -179,10 +179,11 @@ function drawCustomerBox(doc, customer, y = 174) {
   return y + h;
 }
 
-function drawItemsTable(doc, items, startY) {
+function drawItemsTable(doc, items, startY, currencyCode = "USD") {
   const x = margin;
   const widths = [36, 224, 62, 95, 94];
-  const headers = ["No.", "Description", "Qty", "Unit Price (USD)", "Amount (USD)"];
+  const code = String(currencyCode || "USD").toUpperCase();
+  const headers = ["No.", "Description", "Qty", `Unit Price (${code})`, `Amount (${code})`];
   const headerH = 25;
   const rowH = 25;
   let y = startY;
@@ -253,12 +254,13 @@ export async function makeQuotationPdf({ quotation, customer, items }) {
   const { doc, promise } = beginDocument("QUOTATION", quotation.number, quotation.quote_date, { validUntil: quotation.valid_until });
   const customerBottom = drawCustomerBox(doc, customer);
 
-  const y = drawItemsTable(doc, items, customerBottom + 20);
+  const currencyCode = String(quotation.currency_code || "USD").toUpperCase();
+  const y = drawItemsTable(doc, items, customerBottom + 20, currencyCode);
   const notesY = y + 18;
   doc.fillColor(navy).font("Helvetica-Bold").fontSize(9).text("Notes:", margin, notesY);
   doc.fillColor(lightBlue).roundedRect(margin, notesY + 16, 270, 78, 5).fill();
   doc.fillColor(dark).font("Helvetica").fontSize(8.5).text(quotation.notes || "N/A", margin + 12, notesY + 30, { width: 246, height: 55 });
-  drawTotals(doc, [["Subtotal:", quotation.subtotal], ["Discount:", quotation.discount], ["Tax:", quotation.tax], ["TOTAL (USD):", quotation.total]], notesY + 16);
+  drawTotals(doc, [["Subtotal:", quotation.subtotal], ["Discount:", quotation.discount], ["Tax:", quotation.tax], [`TOTAL (${currencyCode}):`, quotation.total]], notesY + 16);
 
   const termsY = notesY + 114;
   doc.fillColor(navy).font("Helvetica-Bold").fontSize(9).text("Terms and Conditions:", margin, termsY);
@@ -278,8 +280,8 @@ export async function makeQuotationPdf({ quotation, customer, items }) {
 export async function makeInvoicePdf({ invoice, customer, items, bankAccount }) {
   const { doc, promise } = beginDocument("INVOICE", invoice.number, invoice.invoice_date, { customer: customer?.name });
   const customerBottom = drawCustomerBox(doc, customer);
-  const y = drawItemsTable(doc, items, customerBottom + 20);
   const currencyCode = String(invoice.currency_code || "USD").toUpperCase();
+  const y = drawItemsTable(doc, items, customerBottom + 20, currencyCode);
   const totalsY = y + 18;
   drawTotals(doc, [["Subtotal:", invoice.subtotal], ["Discount:", invoice.discount], ["Tax:", invoice.tax], [`TOTAL (${currencyCode}):`, invoice.total], [`PAID (${currencyCode}):`, invoice.paid], [`BALANCE (${currencyCode}):`, invoice.balance]], totalsY);
 
