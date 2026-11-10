@@ -498,6 +498,7 @@ function CurrenciesRates({user}){
 function Suppliers({user}){const [rows,setRows]=useState([]),[open,setOpen]=useState(false);const load=()=>api("/phase4/suppliers").then(x=>setRows(Array.isArray(x)?x:[])).catch(e=>alert(e.message));useEffect(()=>{load()},[]);const save=async e=>{e.preventDefault();const o=Object.fromEntries(new FormData(e.target));try{await api("/phase4/suppliers",{method:"POST",body:JSON.stringify(o)});setOpen(false);load()}catch(e){alert(e.message)}};return <><div className="toolbar"><h1>Suppliers</h1><button onClick={()=>setOpen(true)}>+ New Supplier</button></div>{open&&<div className="panel"><form onSubmit={save}><input name="name" placeholder="Supplier name" required/><input name="contact_person" placeholder="Contact person"/><input name="phone" placeholder="Phone"/><input name="email" type="email" placeholder="Email"/><input name="address" placeholder="Address"/><input name="tax_number" placeholder="Tax number"/><select name="default_currency"><option>USD</option><option>SSP</option></select><textarea name="notes" placeholder="Notes"/><button>Save Supplier</button><button type="button" onClick={()=>setOpen(false)}>Cancel</button></form></div>}<Table cols={["supplier_code","name","contact_person","phone","default_currency","active"]} rows={rows}/></>}
 function Bills({user}){
   const [rows,setRows]=useState([]),[suppliers,setSuppliers]=useState([]),[accounts,setAccounts]=useState([]),[purchaseOrders,setPurchaseOrders]=useState([]),[open,setOpen]=useState(false),[editing,setEditing]=useState(null),[paymentOpen,setPaymentOpen]=useState(false),[selectedBill,setSelectedBill]=useState(null),[savingPayment,setSavingPayment]=useState(false);
+  const [billFilters,setBillFilters]=useState({from:"",to:"",supplier:""});
   const [payment,setPayment]=useState({payment_date:new Date().toISOString().slice(0,10),amount:"",account_id:"",reference:"",notes:"",exchange_rate:""});
   const load=()=>api("/phase4/bills").then(x=>setRows(Array.isArray(x)?x:[])).catch(e=>alert(e.message));
   useEffect(()=>{
@@ -510,13 +511,20 @@ function Bills({user}){
   const dateValue=v=>v?String(v).slice(0,10):"";
   const startEdit=b=>setEditing({...b,bill_date:dateValue(b.bill_date),due_date:dateValue(b.due_date),exchange_rate:b.exchange_rate||""});
   const saveEdit=async e=>{e.preventDefault();if(!editing)return;const o=Object.fromEntries(new FormData(e.target));try{await api(`/phase4/bills/${editing.id}`,{method:"PATCH",body:JSON.stringify(o)});setEditing(null);load();alert("Supplier bill updated successfully.")}catch(e){alert(e.message)}};
+  const filteredBills=rows.filter(b=>(!billFilters.from||dateValue(b.bill_date)>=billFilters.from)&&(!billFilters.to||dateValue(b.bill_date)<=billFilters.to)&&(!billFilters.supplier||String(b.supplier_id)===billFilters.supplier));
+  const deleteBill=async b=>{
+    if(Number(b.paid||0)>0){alert("Bills with recorded payments cannot be deleted.");return}
+    if(!confirm(`Delete bill ${b.bill_number} for ${b.supplier_name}? This action cannot be undone. Only unpaid bills without payment records may be deleted.`))return;
+    try{await api(`/phase4/bills/${encodeURIComponent(b.id)}`,{method:"DELETE"});load();alert(`Bill ${b.bill_number} deleted.`)}catch(e){alert(e.message)}
+  };
   const exportAllBills=()=>{
-    if(!rows.length){alert("There are no supplier bills to export.");return}
+    if(billFilters.from&&billFilters.to&&billFilters.from>billFilters.to){alert("From date must be on or before To date.");return}
+    if(!filteredBills.length){alert("There are no supplier bills matching the selected filters.");return}
     const headers=["Bill Number","Purchase Order","Supplier","Supplier Reference","Bill Date","Due Date","Currency","Exchange Rate","Amount","Paid","Balance","Status","Description","Notes"];
-    const values=rows.map(b=>[b.bill_number,b.purchase_order_number||"",b.supplier_name||"",b.supplier_reference||"",dateValue(b.bill_date),dateValue(b.due_date),b.currency_code||"",b.exchange_rate||"",Number(b.amount||0).toFixed(2),Number(b.paid||0).toFixed(2),Number(b.balance||0).toFixed(2),b.status||"",b.description||"",b.notes||""]);
+    const values=filteredBills.map(b=>[b.bill_number,b.purchase_order_number||"",b.supplier_name||"",b.supplier_reference||"",dateValue(b.bill_date),dateValue(b.due_date),b.currency_code||"",b.exchange_rate||"",Number(b.amount||0).toFixed(2),Number(b.paid||0).toFixed(2),Number(b.balance||0).toFixed(2),b.status||"",b.description||"",b.notes||""]);
     const esc=v=>`"${String(v??"").replace(/"/g,'""')}"`;
     const csv='\ufeff'+[headers,...values].map(r=>r.map(esc).join(",")).join("\r\n");
-    const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`supplier-bills-${new Date().toISOString().slice(0,10)}.csv`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+    const blob=new Blob([csv],{type:"text/csv;charset=utf-8;"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`supplier-bills-filtered-${new Date().toISOString().slice(0,10)}.csv`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
   };
   const startPayment=b=>{
     setSelectedBill(b);
@@ -536,8 +544,15 @@ function Bills({user}){
   const availableAccounts=accounts.filter(a=>a.active && String(a.currency_code||"USD").toUpperCase()===String(selectedBill?.currency_code||"USD").toUpperCase());
   const openBillablePOs=purchaseOrders.filter(po=>["APPROVED","PARTIALLY_RECEIVED","RECEIVED"].includes(po.status) && !rows.some(b=>b.purchase_order_id===po.id));
   const canEdit=user?.role!=="MANAGER";
+  const canDelete=user?.role==="ADMIN"||user?.role==="FINANCE"||user?.permissions?.includes("supplier_bills.delete")||user?.permissions?.includes("supplier_bills.*")||user?.permissions?.includes("*");
   return <>
-    <div className="toolbar"><div><h1>Supplier Bills</h1><p className="muted">Accounts payable with optional purchase-order linkage.</p></div><div><button type="button" onClick={exportAllBills}>Export All Bills</button> <button onClick={()=>setOpen(true)}>+ New Bill</button></div></div>
+    <div className="toolbar"><div><h1>Supplier Bills</h1><p className="muted">Accounts payable with optional purchase-order linkage.</p></div><div><button type="button" onClick={exportAllBills}>Export Filtered Bills ({filteredBills.length})</button> <button onClick={()=>setOpen(true)}>+ New Bill</button></div></div>
+    <div className="panel"><div className="form-grid">
+      <div><label>Bill Date From</label><input type="date" value={billFilters.from} onChange={e=>setBillFilters({...billFilters,from:e.target.value})}/></div>
+      <div><label>Bill Date To</label><input type="date" value={billFilters.to} onChange={e=>setBillFilters({...billFilters,to:e.target.value})}/></div>
+      <div><label>Supplier</label><select value={billFilters.supplier} onChange={e=>setBillFilters({...billFilters,supplier:e.target.value})}><option value="">All suppliers</option>{suppliers.map(s=><option key={s.id} value={String(s.id)}>{s.name}</option>)}</select></div>
+      <div className="form-actions"><button type="button" onClick={()=>setBillFilters({from:"",to:"",supplier:""})}>Clear Filters</button></div>
+    </div><p className="muted">Showing {filteredBills.length} of {rows.length} bills. Exports follow these filters.</p></div>
     {open&&<div className="panel procurement-form"><form onSubmit={save}><div className="form-grid">
       <div><label>Supplier</label><select name="supplier_id" required><option value="">Select supplier</option>{suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
       <div><label>Purchase Order</label><select name="purchase_order_id" defaultValue=""><option value="">Not linked / manual bill</option>{openBillablePOs.map(po=><option key={po.id} value={po.id}>{po.number} — {po.supplier_name} — {po.currency_code} {Number(po.total||0).toFixed(2)}</option>)}</select></div>
@@ -571,7 +586,7 @@ function Bills({user}){
       <label>Exchange Rate<input type="number" min="0.00000001" step="0.00000001" value={payment.exchange_rate} onChange={e=>setPayment({...payment,exchange_rate:e.target.value})} placeholder="Optional — use current rate if blank"/></label>
       <button disabled={savingPayment||availableAccounts.length===0}>{savingPayment?"Recording...":"Record Payment"}</button><button type="button" onClick={()=>{setPaymentOpen(false);setSelectedBill(null)}}>Cancel</button>
     </form></div>}
-    <div className="table-wrap"><table><thead><tr>{["bill number","purchase order","supplier name","bill date","due date","currency code","amount","paid","balance","status","actions"].map(c=><th key={c}>{c}</th>)}</tr></thead><tbody>{rows.length?rows.map(b=><tr key={b.id}><td>{b.bill_number}</td><td>{b.purchase_order_number||"—"}</td><td>{b.supplier_name}</td><td>{dateValue(b.bill_date)}</td><td>{dateValue(b.due_date)||"—"}</td><td>{b.currency_code}</td><td>{Number(b.amount||0).toFixed(2)}</td><td>{Number(b.paid||0).toFixed(2)}</td><td>{Number(b.balance||0).toFixed(2)}</td><td>{b.status}</td><td>{canEdit&&b.status!=="CANCELLED"&&<button onClick={()=>startEdit(b)}>Edit</button>} {user?.role!=="MANAGER"&&b.status!=="PAID"&&b.status!=="CANCELLED"&&<button onClick={()=>startPayment(b)}>Record Payment</button>}</td></tr>):<tr><td colSpan="11">No supplier bills found.</td></tr>}</tbody></table></div>
+    <div className="table-wrap"><table><thead><tr>{["bill number","purchase order","supplier name","bill date","due date","currency code","amount","paid","balance","status","actions"].map(c=><th key={c}>{c}</th>)}</tr></thead><tbody>{filteredBills.length?filteredBills.map(b=><tr key={b.id}><td>{b.bill_number}</td><td>{b.purchase_order_number||"—"}</td><td>{b.supplier_name}</td><td>{dateValue(b.bill_date)}</td><td>{dateValue(b.due_date)||"—"}</td><td>{b.currency_code}</td><td>{Number(b.amount||0).toFixed(2)}</td><td>{Number(b.paid||0).toFixed(2)}</td><td>{Number(b.balance||0).toFixed(2)}</td><td>{b.status}</td><td>{canEdit&&b.status!=="CANCELLED"&&<button onClick={()=>startEdit(b)}>Edit</button>} {user?.role!=="MANAGER"&&b.status!=="PAID"&&b.status!=="CANCELLED"&&<button onClick={()=>startPayment(b)}>Record Payment</button>} {canDelete&&Number(b.paid||0)===0&&<button type="button" className="danger" onClick={()=>deleteBill(b)}>Delete</button>}</td></tr>):<tr><td colSpan="11">No supplier bills match the selected filters.</td></tr>}</tbody></table></div>
   </>;
 }
 
