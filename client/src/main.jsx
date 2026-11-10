@@ -547,12 +547,12 @@ function Bills({user}){
   const canDelete=user?.role==="ADMIN"||user?.role==="FINANCE"||user?.permissions?.includes("supplier_bills.delete")||user?.permissions?.includes("supplier_bills.*")||user?.permissions?.includes("*");
   return <>
     <div className="toolbar"><div><h1>Supplier Bills</h1><p className="muted">Accounts payable with optional purchase-order linkage.</p></div><div><button type="button" onClick={exportAllBills}>Export Filtered Bills ({filteredBills.length})</button> <button onClick={()=>setOpen(true)}>+ New Bill</button></div></div>
-    <div className="panel"><div className="form-grid">
-      <div><label>Bill Date From</label><input type="date" value={billFilters.from} onChange={e=>setBillFilters({...billFilters,from:e.target.value})}/></div>
-      <div><label>Bill Date To</label><input type="date" value={billFilters.to} onChange={e=>setBillFilters({...billFilters,to:e.target.value})}/></div>
-      <div><label>Supplier</label><select value={billFilters.supplier} onChange={e=>setBillFilters({...billFilters,supplier:e.target.value})}><option value="">All suppliers</option>{suppliers.map(s=><option key={s.id} value={String(s.id)}>{s.name}</option>)}</select></div>
-      <div className="form-actions"><button type="button" onClick={()=>setBillFilters({from:"",to:"",supplier:""})}>Clear Filters</button></div>
-    </div><p className="muted">Showing {filteredBills.length} of {rows.length} bills. Exports follow these filters.</p></div>
+    <div className="panel bills-filter-panel"><div className="bills-filter-grid" style={{display:"flex",flexDirection:"row",flexWrap:"nowrap",alignItems:"flex-end",gap:12,overflowX:"auto",paddingBottom:4}}>
+      <div className="bills-filter-field" style={{flex:"1 0 175px",minWidth:175}}><label htmlFor="bills-date-from">Bill Date From</label><input id="bills-date-from" type="date" value={billFilters.from} onChange={e=>setBillFilters({...billFilters,from:e.target.value})}/></div>
+      <div className="bills-filter-field" style={{flex:"1 0 175px",minWidth:175}}><label htmlFor="bills-date-to">Bill Date To</label><input id="bills-date-to" type="date" value={billFilters.to} onChange={e=>setBillFilters({...billFilters,to:e.target.value})}/></div>
+      <div className="bills-filter-field" style={{flex:"1.25 0 195px",minWidth:195}}><label htmlFor="bills-supplier">Supplier</label><select id="bills-supplier" value={billFilters.supplier} onChange={e=>setBillFilters({...billFilters,supplier:e.target.value})}><option value="">All suppliers</option>{suppliers.map(s=><option key={s.id} value={String(s.id)}>{s.name}</option>)}</select></div>
+      <div className="bills-filter-clear" style={{flex:"0 0 auto",alignSelf:"flex-end"}}><button type="button" onClick={()=>setBillFilters({from:"",to:"",supplier:""})}>Clear Filters</button></div>
+    </div><p className="muted bills-filter-summary">Showing {filteredBills.length} of {rows.length} bills. Exports follow these filters.</p></div>
     {open&&<div className="panel procurement-form"><form onSubmit={save}><div className="form-grid">
       <div><label>Supplier</label><select name="supplier_id" required><option value="">Select supplier</option>{suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
       <div><label>Purchase Order</label><select name="purchase_order_id" defaultValue=""><option value="">Not linked / manual bill</option>{openBillablePOs.map(po=><option key={po.id} value={po.id}>{po.number} — {po.supplier_name} — {po.currency_code} {Number(po.total||0).toFixed(2)}</option>)}</select></div>
